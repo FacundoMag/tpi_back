@@ -10,6 +10,7 @@ const port = 6666;
 
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true}))
 
 app.use('/api', apiRouter);
 
