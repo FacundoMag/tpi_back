@@ -6,12 +6,12 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js"
-
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@damianegreco/hashpass": "^2.0.0",
     "express": "^4.21.1",
     "multer": "^1.4.5-lts.1",
     "mysql": "^2.18.1",
