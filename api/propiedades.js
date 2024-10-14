@@ -17,15 +17,24 @@ const fotos = multer.diskStorage({
 const upload = multer({ fotos: fotos });
 
 router.post('/', upload.array('imagenes', 10), (req, res, next) =>{
-     const propiedad_id = 123;
-     req.propiedad_id = propiedad_id;
+    
+    const {nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado_id, descripcion} = req.body;
+
+   
 
      upload(req, res, (err)=>{
          if(err){
             return res.status(400).send("error subiendo imagenes")
          }
-         const sql = "INSERT INTO fotos (propiedad_id, url) VALUES (?, ?)"
-         
+         const archivosSubidos = req.files.map(file => ({
+            
+            urlimagen: file.filename
+         }))
+
+         const sql = "INSERT INTO fotos (propiedad_id, url) VALUES (?, ?)";
+         archivosSubidos.forEach(archivo => {
+            conexion.query(sql, [])
+         })
      })
 })
 
