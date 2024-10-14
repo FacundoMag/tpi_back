@@ -15,7 +15,6 @@ const fotos = multer.diskStorage({
 });
 
 const upload = multer({ storage: fotos });
-
 // Ruta para crear una nueva propiedad y subir imágenes
 router.post('/', upload.array('imagenes', 10), (req, res, next) => {
     const { nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado_id, descripcion } = req.body;

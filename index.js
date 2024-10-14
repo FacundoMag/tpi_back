@@ -2,7 +2,7 @@ const express = require('express');
 
 const apiRouter = require('./api/main');
 
-const app = epxress();
+const app = express();
 
 
 const port = 6666;
