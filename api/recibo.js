@@ -24,8 +24,8 @@ router.post('/', async (req, res) => {
         const transporter = nodemailer.createTransport({
             service: 'gmail', 
             auth: {
-                user: 'tu_correo@gmail.com',
-                pass: 'tu_contraseña', 
+                user: 'scapessouthern812@gmail.com',
+                pass: 'escapesdelsur', 
             },
         });
 
@@ -57,8 +57,8 @@ router.post('/', async (req, res) => {
 
         // Configuración del correo
         const mailOptions = {
-            from: 'tu_correo@gmail.com',
-            to: correo, // Correo del usuario
+            from: 'scapessouthern812@gmail.com',
+            to: correo, // correo del usuario
             subject: `Recibo #${alquiler_id}`,
             html: htmlContent,
         };
