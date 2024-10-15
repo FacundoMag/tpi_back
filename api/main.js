@@ -51,30 +51,30 @@ router.use('/reservacion', function(req, res, next){
  
 })
 
-router.use('/recibo', function(req, res, next){
-    const token = req.headers.authorization;
-    if(token === undefined || token === null){
-        console.error('sin token');
-        res.status(403).res.json({
-            status: 'error', error: 'sin token'
-        })
-    } else{
-        const verificacionToken = verificarToken(token, TOKEN_SECRET)
-        if(verificacionToken?.data?.usuario_id !== undefined){
-            next()
-        } else{
-            res.json({
-                status: 'error',
-                error: 'token incorrecto'
-            })
-        }
-    }
+// router.use('/recibo', function(req, res, next){
+//     const token = req.headers.authorization;
+//     if(token === undefined || token === null){
+//         console.error('sin token');
+//         res.status(403).res.json({
+//             status: 'error', error: 'sin token'
+//         })
+//     } else{
+//         const verificacionToken = verificarToken(token, TOKEN_SECRET)
+//         if(verificacionToken?.data?.usuario_id !== undefined){
+//             next()
+//         } else{
+//             res.json({
+//                 status: 'error',
+//                 error: 'token incorrecto'
+//             })
+//         }
+//     }
 
-})
+// })
 
 
 router.use('/propiedades', propiedadesRouter)
-router.use('/recibo', reciboRouter);
+
 router.use('/reservacion', reservacionRouter);
 router.use('/user', userRouter);
 
