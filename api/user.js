@@ -3,7 +3,7 @@ const router = express.Router();
 const {hashPass, verificarPass, generarToken, verificarToken} = require('@damianegreco/hashpass');
 const {conexion} = require('../db/conexion')
 
-const TOKEN_SECRET = "tpi"
+
 
 
 
@@ -21,7 +21,7 @@ const checkUsuario = function(correo){
 const guardarUsuario = function(nombre, apellido, correo, contraseñaHasheada){
     return new Promise((resolve, reject) => {
         const sql = "INSERT INTO usuarios (nombre, apellido, correo, contraseña) VALUES (?, ?, ?, ?) RETURNING id";
-        conexion.query(sql, [nombre, apellido, correo, passHaseada], function(error, result){
+        conexion.query(sql, [nombre, apellido, correo, contraseñaHasheada], function(error, result){
             if(error) return reject(error);
             resolve(result[0].id);
         })
@@ -30,7 +30,7 @@ const guardarUsuario = function(nombre, apellido, correo, contraseñaHasheada){
 }
 
 
-router.post('/', function(req, res, next){
+router.post('/registrarse', function(req, res, next){
     const {nombre, apellido, correo, contraseña} = req.body;
     checkUsuario(correo)
     .then(()=>{
@@ -81,6 +81,11 @@ router.post('/inicio_sesion', function(req, res, next){
             }
         }
     })
+})
+
+
+router.put('/edit', function(req, res, next){
+    
 })
 
 
