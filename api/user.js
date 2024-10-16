@@ -3,6 +3,7 @@ const router = express.Router();
 const {hashPass, verificarPass, generarToken, verificarToken} = require('@damianegreco/hashpass');
 const {conexion} = require('../db/conexion')
 
+const TOKEN_SECRET = "EQUIPO_GOAT"
 
 
 
@@ -23,8 +24,7 @@ const guardarUsuario = function(nombre, apellido, correo, contraseñaHasheada){
         const sql = "INSERT INTO usuarios (nombre, apellido, correo, contraseña) VALUES (?, ?, ?, ?)";
         conexion.query(sql, [nombre, apellido, correo, contraseñaHasheada], function(error, result){
             if(error) return reject(error);
-            console.log(result);
-            resolve(result);
+            resolve(result.insertId);
         })
 
     })
@@ -42,6 +42,7 @@ router.post('/registrarse', function(req, res, next){
             status: 'ok',
             usuarios_id
            })
+           
         })
         
     })
@@ -86,6 +87,34 @@ router.post('/inicio_sesion', function(req, res, next){
 
 
 router.put('/edit', function(req, res, next){
+    const {id} = req.query;
+    const token = req.headers.authorization;
+   
+    if(token !== id){
+        console.error('accesos denegado');
+        res.status(404).res.json({
+            status: 'error', error: 'accesso denegado'
+        })
+    } else{
+
+        const {nombre, apellido, correo} = req.body;
+    
+        const sql = "UPDATE usuarios SET nombre = ?, apellido = ?, correo = ? WHERE id = ?";
+        conexion.query(sql, [nombre, apellido, correo, id], function(error, result){
+            if(error){
+                console.error(error);
+                return res.status(500).send('ocurrio un error')
+            }
+            res.json({
+                status: 'ok'
+            })
+        })
+    }
+    // if (!token) return res.status(401).send('Acceso denegado');
+
+    
+
+
     
 })
 
