@@ -5,8 +5,8 @@ const propiedadesRouter = require('./propiedades');
 
 const userRouter = require('./user');
 
-const TOKEN_SECRET = "EQUIPO_GOAT"
 
+const TOKEN_SECRET = "EQUIPO_GOAT"
 
 
 
