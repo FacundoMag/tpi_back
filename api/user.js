@@ -20,10 +20,11 @@ const checkUsuario = function(correo){
 
 const guardarUsuario = function(nombre, apellido, correo, contraseñaHasheada){
     return new Promise((resolve, reject) => {
-        const sql = "INSERT INTO usuarios (nombre, apellido, correo, contraseña) VALUES (?, ?, ?, ?) RETURNING id";
+        const sql = "INSERT INTO usuarios (nombre, apellido, correo, contraseña) VALUES (?, ?, ?, ?)";
         conexion.query(sql, [nombre, apellido, correo, contraseñaHasheada], function(error, result){
             if(error) return reject(error);
-            resolve(result[0].id);
+            console.log(result);
+            resolve(result);
         })
 
     })
