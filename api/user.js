@@ -19,10 +19,10 @@ const checkUsuario = function(correo){
     })
 }
 
-const guardarUsuario = function(nombre, apellido, correo, contraseñaHasheada){
+const guardarUsuario = function(nombre, apellido, telefono, correo, contraseñaHasheada){
     return new Promise((resolve, reject) => {
-        const sql = "INSERT INTO usuarios (nombre, apellido, correo, contraseña) VALUES (?, ?, ?, ?)";
-        conexion.query(sql, [nombre, apellido, correo, contraseñaHasheada], function(error, result){
+        const sql = "INSERT INTO usuarios (nombre, apellido, telefono, correo, contrasena) VALUES (?, ?, ?, ?, ?)";
+        conexion.query(sql, [nombre, apellido, telefono, correo, contraseñaHasheada], function(error, result){
             if(error) return reject(error);
             resolve(result.insertId);
         })
@@ -32,11 +32,11 @@ const guardarUsuario = function(nombre, apellido, correo, contraseñaHasheada){
 
 
 router.post('/registrarse', function(req, res, next){
-    const {nombre, apellido, correo, contraseña} = req.body;
+    const {nombre, apellido, telefono, correo, contraseña} = req.body;
     checkUsuario(correo)
     .then(()=>{
         const contraseñaHasheada = hashPass(contraseña);
-        guardarUsuario(nombre, apellido, correo, contraseñaHasheada)
+        guardarUsuario(nombre, apellido, telefono, correo, contraseñaHasheada)
         .then((usuarios_id)=>{
            res.json({
             status: 'ok',
