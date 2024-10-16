@@ -3,13 +3,13 @@ const router = express.Router();
 const { obtenerReservaciones, crearReservacion, actualizarReservacion, eliminarReservacion } = require('./reservacion');
 
 // Ruta para obtener todas las reservaciones
-router.get('/', (req, res) => {
-  obtenerReservaciones((error, reservaciones) => {
-    if (error) {
-      return res.status(500).json({ error: 'Error al obtener las reservaciones' });
-    }
-    res.status(200).json(reservaciones);
-  });
+router.get('/', async (req, res) => {
+  try {
+      const reservaciones = await obtenerReservaciones();
+      res.status(200).json(reservaciones);
+  } catch (error) {
+      res.status(500).json({ error: 'Error al obtener las reservaciones' });
+  }
 });
 
 // Ruta para crear una nueva reservación
