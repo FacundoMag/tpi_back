@@ -21,7 +21,7 @@ const checkUsuario = function(correo){
 
 const guardarUsuario = function(nombre, apellido, telefono, correo, contraseñaHasheada){
     return new Promise((resolve, reject) => {
-        const sql = "INSERT INTO usuarios (nombre, apellido, telefono, correo, contrasena) VALUES (?, ?, ?, ?, ?)";
+        const sql = "INSERT INTO usuarios (nombre, apellido, telefono, correo, contraseña) VALUES (?, ?, ?, ?, ?)";
         conexion.query(sql, [nombre, apellido, telefono, correo, contraseñaHasheada], function(error, result){
             if(error) return reject(error);
             resolve(result.insertId);
@@ -89,41 +89,66 @@ router.post('/inicio_sesion', function(req, res, next){
 router.put('/edit', function(req, res, next){
     const {id} = req.query;
     const token = req.headers.authorization;
-    if(token === undefined || token === null || id === undefined || id === null){
+    if(!token || !id){
         console.error('acceso denegado');
         res.status(403).res.json({
             status: 'error', error: 'acceso denegado'
         })
     } 
-    const consul = "SELECT * FROM usuarios WHERE id = ? OR token = ?";
-    conexion.query(consul, [id, token], function(error, result){
-        if(error){
-            console.error(error);
-            return res.status(300).send('id no econtrado')
-        } 
-        console.log(result)
-             
-        
+
+    const verificacionToken = verificarToken(token, TOKEN_SECRET);
+    if(verificacionToken?.data?.usuario_id === undefined){
+            console.error('token invalido');
+            return res.json({
+                status: "error",
+                error: "token invalido"
+            })
     }
-    )
 
-    
+     const usuarioIdToken = verificacionToken?.data?.usuario_id;
 
-        const {nombre, apellido, correo} = req.body;
+        if(usuarioIdToken != id){
+            return res.status(403).json({
+                status: 'error',
+                error: 'no tienes permisos para modificar este perfil'
+            })
+        }
+        const {nombre, apellido, telefono, correo} = req.body;
     
-        const sql = "UPDATE usuarios SET nombre = ?, apellido = ?, correo = ? WHERE id = ?";
-        conexion.query(sql, [nombre, apellido, correo, id], function(error, result){
+        const sql = "UPDATE usuarios SET nombre = ?, apellido = ?, telefono = ?, correo = ? WHERE id = ?";
+        conexion.query(sql, [nombre, apellido, telefono, correo, id], function(error, result){
             if(error){
                 console.error(error);
                 return res.status(500).send('ocurrio un error')
             }
             res.json({
-                status: 'ok'
+                status: 'ok',
+                message: 'datos actualizados correctamente'
             })
         })
+    })
+
     
-    // if (!token) return res.status(401).send('Acceso denegado');
-})
+
+
+
+
+
+
+    // const consul = "SELECT * FROM usuarios WHERE id = ? OR token = ?";
+    // conexion.query(consul, [id, token], function(error, result){
+    //     if(error){
+    //         console.error(error);
+    //         return res.status(300).send('id no econtrado')
+    //     } 
+    //     console.log(result)
+             
+        
+    // }
+    // )
+
+    
+
 
 router.get('/mis_propiedades', function(req, res, next){
 
