@@ -89,13 +89,25 @@ router.post('/inicio_sesion', function(req, res, next){
 router.put('/edit', function(req, res, next){
     const {id} = req.query;
     const token = req.headers.authorization;
-   
-    if(token !== id){
-        console.error('accesos denegado');
-        res.status(404).res.json({
-            status: 'error', error: 'accesso denegado'
+    if(token === undefined || token === null || id === undefined || id === null){
+        console.error('acceso denegado');
+        res.status(403).res.json({
+            status: 'error', error: 'acceso denegado'
         })
-    } else{
+    } 
+    const consul = "SELECT * FROM usuarios WHERE id = ? OR token = ?";
+    conexion.query(consul, [id, token], function(error, result){
+        if(error){
+            console.error(error);
+            return res.status(300).send('id no econtrado')
+        } 
+        console.log(result)
+             
+        
+    }
+    )
+
+    
 
         const {nombre, apellido, correo} = req.body;
     
@@ -109,13 +121,12 @@ router.put('/edit', function(req, res, next){
                 status: 'ok'
             })
         })
-    }
+    
     // if (!token) return res.status(401).send('Acceso denegado');
+})
 
-    
+router.get('/mis_propiedades', function(req, res, next){
 
-
-    
 })
 
 
