@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router();
 const {hashPass, verificarPass, generarToken, verificarToken} = require('@damianegreco/hashpass');
-const {conexion} = require('../db/conexion')
+const conexion = require('../db/conexion');
 
 const TOKEN_SECRET = "EQUIPO_GOAT"
 
