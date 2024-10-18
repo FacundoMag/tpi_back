@@ -105,6 +105,8 @@ router.put('/edit', function(req, res, next){
             })
     }
 
+    
+
      const usuarioIdToken = verificacionToken?.data?.usuario_id;
 
         if(usuarioIdToken != id){
