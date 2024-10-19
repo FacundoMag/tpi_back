@@ -1,18 +1,19 @@
 const mysql = require('mysql');
 
 const conexion = mysql.createConnection({
-    host:"193.203.183.221",
-    user:"maggerif",
-    password:"46087297",
-    database:"24_72_A"
+    host: "localhost",
+    user: "root",
+    password: "",
+    database: "tpi"
 });
 
-conexion.connect(function(error){
-    if(error){
+conexion.connect(function (error) {
+    if (error) {
         console.error(error);
         return;
     }
-    console.log("conexion exitosa a la base de datos")
-})
+    console.log("Conexión exitosa a la base de datos");
+});
 
-module.exports = {conexion}
+// Exportar la conexión correctamente
+module.exports = conexion;
