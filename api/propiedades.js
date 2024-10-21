@@ -1,14 +1,28 @@
 const express = require('express');
 const router = express.Router();
 const conexion = require('../db/conexion');
-const { hashPass, verificarPass, generarToken, verificarToken } = require('@damianegreco/hashpass');
+const multer = require('multer');
+const { verificarToken } = require('@damianegreco/hashpass');
 
-const TOKEN_SECRET = "EQUIPO_GOAT"
+const TOKEN_SECRET = "EQUIPO_GOAT";
+
+// Configurar Multer para el manejo de archivos
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/');  // Directorio donde se guardarán las imágenes
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, uniqueSuffix + '-' + file.originalname);  // Nombre único para cada archivo
+    }
+});
+
+const upload = multer({ storage: storage });
 
 // Obtener todas las propiedades
 router.get('/', (req, res) => {
     const sql = 'SELECT * FROM propiedades';
-    conexion.query(sql, (err, results) => { // Aquí se usa conexion.query
+    conexion.query(sql, (err, results) => { 
         if (err) {
             return res.status(500).json({ error: err.message });
         }
@@ -16,10 +30,14 @@ router.get('/', (req, res) => {
     });
 });
 
-// Obtener una propiedad por ID
+// Obtener una propiedad por ID con la URL de la imagen
 router.get('/:id', (req, res) => {
     const { id } = req.params;
-    const sql = 'SELECT * FROM propiedades WHERE id = ?';
+    const sql = `SELECT propiedades.*, imagenes.url as imagen_url 
+                 FROM propiedades 
+                 LEFT JOIN imagenes ON propiedades.id = imagenes.propiedad_id 
+                 WHERE propiedades.id = ?`;
+
     conexion.query(sql, [id], (err, results) => {
         if (err) {
             return res.status(500).json({ error: err.message });
@@ -27,38 +45,60 @@ router.get('/:id', (req, res) => {
         if (results.length === 0) {
             return res.status(404).json({ message: 'Propiedad no encontrada' });
         }
-        res.json(results[0]);
+        res.json(results[0]); // Incluye la URL de la imagen en la respuesta
     });
 });
 
-// Crear una nueva propiedad
-router.post('/newpropiedad', (req, res) => {
+// Crear una nueva propiedad y guardar la imagen asociada
+router.post('/newpropiedad', upload.single('imagen'), (req, res) => {
     const token = req.headers.authorization;
-    console.log(token)
+
     if (!token) {
-        console.err('no tienes token');
-        res.status(403).json({
+        return res.status(403).json({
             status: 'error',
-            error: "no tienes token"
-        })
+            error: "No tienes token"
+        });
     }
 
     const verificacionToken = verificarToken(token, TOKEN_SECRET);
+    const usuario_id = verificacionToken?.data?.usuario_id;
 
-    req.usuario_id = verificacionToken?.data?.usuario_id;
+    const { nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado_id, descripcion } = req.body;
 
+    // Primero insertar la propiedad
+    const sqlPropiedad = `INSERT INTO propiedades 
+                         (registra_usuario_id, nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado_id, descripcion) 
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-    const {nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado_id, descripcion } = req.body;
-    const usuario_id = req.usuario_id;
-    const sql = `INSERT INTO propiedades 
-                 (registra_usuario_id, nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado_id, descripcion) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-    conexion.query(sql, [usuario_id, nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado_id, descripcion], (err, result) => {
+    conexion.query(sqlPropiedad, [usuario_id, nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado_id, descripcion], (err, result) => {
         if (err) {
-            console.log(err)
             return res.status(500).json({ error: err.message });
         }
-        res.status(201).json({ message: 'Propiedad creada con éxito', propiedadId: result.insertId });
+
+        const propiedadId = result.insertId;
+
+        // Guardar la URL de la imagen en la tabla de imágenes, asociada a la propiedad creada
+        if (req.file) {
+            const imagenUrl = `/uploads/${req.file.filename}`;
+            const sqlImagen = `INSERT INTO imagenes (propiedad_id, url) VALUES (?, ?)`;
+
+            conexion.query(sqlImagen, [propiedadId, imagenUrl], (err, result) => {
+                if (err) {
+                    return res.status(500).json({ error: err.message });
+                }
+
+                res.status(201).json({ 
+                    message: 'Propiedad y imagen creadas con éxito',
+                    propiedadId: propiedadId,
+                    imagenUrl: imagenUrl
+                });
+            });
+        } else {
+            res.status(201).json({ 
+                message: 'Propiedad creada sin imagen', 
+                propiedadId: propiedadId 
+            });
+        }
     });
 });
 
@@ -70,7 +110,7 @@ router.put('/:id', (req, res) => {
                  WHERE id = ?`;
     conexion.query(sql, [usuario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado, descripcion, id], (err, result) => {
         if (err) {
-            console.log(err)
+            console.log(err);
             return res.status(500).json({ error: err.message });
         }
         if (result.affectedRows === 0) {
