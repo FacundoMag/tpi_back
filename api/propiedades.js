@@ -53,6 +53,7 @@ router.get('/:id', (req, res) => {
 router.get('/newpropiedad', function(req, res, next){
     const ciudadesSQL = "SELECT id, nombre FROM ciudad";
     const tipoSQL = "SELECT id, nombre FROM tipo_propiedad";
+    
 
     conexion.query(ciudadesSQL, function(err, ciudades){
         if (err){
@@ -63,7 +64,8 @@ router.get('/newpropiedad', function(req, res, next){
             if (err){
                 return res.status(500).json({ error: "tipo de propiedad no encontrado"})
             }
-            
+
+                       
             res.status(200).json({
                    ciudades,
                    tipo_propiedad
@@ -87,14 +89,14 @@ router.post('/newpropiedad', upload.single('imagen'), (req, res) => {
     const verificacionToken = verificarToken(token, TOKEN_SECRET);
     const usuario_id = verificacionToken?.data?.usuario_id;
 
-    const { nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado_id, descripcion } = req.body;
+    const { nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion } = req.body;
 
     // Primero insertar la propiedad
     const sqlPropiedad = `INSERT INTO propiedades 
-                         (registra_usuario_id, nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado_id, descripcion) 
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                         (registra_usuario_id, nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion) 
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-    conexion.query(sqlPropiedad, [usuario_id, nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado_id, descripcion], (err, result) => {
+    conexion.query(sqlPropiedad, [usuario_id, nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion], (err, result) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
@@ -129,10 +131,10 @@ router.post('/newpropiedad', upload.single('imagen'), (req, res) => {
 // Actualizar una propiedad por ID
 router.put('/:id', (req, res) => {
     const { id } = req.params;
-    const { usuario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado, descripcion } = req.body;
-    const sql = `UPDATE propiedades SET usuario_id = ?, direccion = ?, ciudad_id = ?, num_habitaciones = ?, num_banos = ?, capacidad = ?, tamano_m2 = ?, precio_renta = ?, tipo_id = ?, estado = ?, descripcion = ?
+    const { usuario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion } = req.body;
+    const sql = `UPDATE propiedades SET usuario_id = ?, direccion = ?, ciudad_id = ?, num_habitaciones = ?, num_banos = ?, capacidad = ?, tamano_m2 = ?, precio_renta = ?, tipo_id = ?, descripcion = ?
                  WHERE id = ?`;
-    conexion.query(sql, [usuario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado, descripcion, id], (err, result) => {
+    conexion.query(sql, [usuario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion, id], (err, result) => {
         if (err) {
             console.log(err);
             return res.status(500).json({ error: err.message });
