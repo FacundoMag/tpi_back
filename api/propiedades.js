@@ -49,6 +49,30 @@ router.get('/:id', (req, res) => {
     });
 });
 
+
+router.get('/newpropiedad', function(req, res, next){
+    const ciudadesSQL = "SELECT id, nombre FROM ciudad";
+    const tipoSQL = "SELECT id, nombre FROM tipo_propiedad";
+
+    conexion.query(ciudadesSQL, function(err, ciudades){
+        if (err){
+            return res.status(500).json({ error: "no se encontro ninguna ciudad"})
+        }
+
+        conexion.query(tipoSQL, function(err, tipo_propiedad){
+            if (err){
+                return res.status(500).json({ error: "tipo de propiedad no encontrado"})
+            }
+            
+            res.status(200).json({
+                   ciudades,
+                   tipo_propiedad
+            })
+        })
+
+    })
+})
+
 // Crear una nueva propiedad y guardar la imagen asociada
 router.post('/newpropiedad', upload.single('imagen'), (req, res) => {
     const token = req.headers.authorization;
