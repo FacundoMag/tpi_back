@@ -63,14 +63,14 @@ router.post('/newpropiedad', upload.single('imagen'), (req, res) => {
     const verificacionToken = verificarToken(token, TOKEN_SECRET);
     const usuario_id = verificacionToken?.data?.usuario_id;
 
-    const { nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado_id, descripcion } = req.body;
+    const { direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado, descripcion } = req.body;
 
     // Primero insertar la propiedad
     const sqlPropiedad = `INSERT INTO propiedades 
-                         (registra_usuario_id, nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado_id, descripcion) 
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                         (usuario_id,direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado, descripcion) 
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-    conexion.query(sqlPropiedad, [usuario_id, nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado_id, descripcion], (err, result) => {
+    conexion.query(sqlPropiedad, [usuario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado, descripcion], (err, result) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
