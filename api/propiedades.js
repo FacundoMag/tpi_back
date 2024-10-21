@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const conexion = require('../db/conexion');
+const { hashPass, verificarPass, generarToken, verificarToken } = require('@damianegreco/hashpass');
+
+const TOKEN_SECRET = "EQUIPO_GOAT"
 
 // Obtener todas las propiedades
 router.get('/', (req, res) => {
@@ -30,12 +33,29 @@ router.get('/:id', (req, res) => {
 
 // Crear una nueva propiedad
 router.post('/newpropiedad', (req, res) => {
-    const { usuario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado, descripcion } = req.body;
+    const token = req.headers.authorization;
+    console.log(token)
+    if (!token) {
+        console.err('no tienes token');
+        res.status(403).json({
+            status: 'error',
+            error: "no tienes token"
+        })
+    }
+
+    const verificacionToken = verificarToken(token, TOKEN_SECRET);
+
+    req.usuario_id = verificacionToken?.data?.usuario_id;
+
+
+    const {nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado_id, descripcion } = req.body;
+    const usuario_id = req.usuario_id;
     const sql = `INSERT INTO propiedades 
-                 (usuario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado, descripcion) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-    conexion.query(sql, [usuario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado, descripcion], (err, result) => {
+                 (registra_usuario_id, nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado_id, descripcion) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    conexion.query(sql, [usuario_id, nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado_id, descripcion], (err, result) => {
         if (err) {
+            console.log(err)
             return res.status(500).json({ error: err.message });
         }
         res.status(201).json({ message: 'Propiedad creada con éxito', propiedadId: result.insertId });
@@ -43,58 +63,21 @@ router.post('/newpropiedad', (req, res) => {
 });
 
 // Actualizar una propiedad por ID
-router.put('/', (req, res) => {
-  const { id, usuario_id } = req.query; // Obtener el id
-  const {
-      direccion,
-      ciudad_id,
-      num_habitaciones,
-      num_banos,
-      capacidad,
-      tamano_m2,
-      precio_renta,
-      tipo_id,
-      estado,
-      descripcion
-  } = req.body; // Obtener datos del cuerpo de la solicitud
-
-  // Verificar si el id es válido
-  if (!id) {
-      return res.status(400).json({ message: 'ID es requerido' });
-  }
-
-  // Verificar que todos los campos necesarios estén presentes
-  if (!direccion || !ciudad_id || !num_habitaciones || !num_banos || !capacidad || !tamano_m2 || !precio_renta || !tipo_id || !estado || !descripcion) {
-      return res.status(400).json({ message: 'Todos los campos son requeridos' });
-  }
-
-  const sql = `UPDATE propiedades SET  
-                direccion = ?, 
-                ciudad_id = ?, 
-                num_habitaciones = ?, 
-                num_banos = ?, 
-                capacidad = ?, 
-                tamano_m2 = ?, 
-                precio_renta = ?, 
-                tipo_id = ?, 
-                estado = ?, 
-                descripcion = ?
-                WHERE id = ?`;
-
-  // Realizar la consulta para actualizar la propiedad
-  conexion.query(sql, [direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado, descripcion, id], (err, result) => {
-      if (err) {
-          console.error('Error en la actualización:', err); // Registrar error en la consola
-          return res.status(500).json({ error: 'Error en la actualización' });
-      }
-
-      // Verificar si se actualizó alguna fila
-      if (result.affectedRows === 0) {
-          return res.status(404).json({ message: 'Propiedad no encontrada' });
-      }
-
-      res.json({ message: 'Propiedad actualizada con éxito' });
-  });
+router.put('/:id', (req, res) => {
+    const { id } = req.params;
+    const { usuario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado, descripcion } = req.body;
+    const sql = `UPDATE propiedades SET usuario_id = ?, direccion = ?, ciudad_id = ?, num_habitaciones = ?, num_banos = ?, capacidad = ?, tamano_m2 = ?, precio_renta = ?, tipo_id = ?, estado = ?, descripcion = ?
+                 WHERE id = ?`;
+    conexion.query(sql, [usuario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado, descripcion, id], (err, result) => {
+        if (err) {
+            console.log(err)
+            return res.status(500).json({ error: err.message });
+        }
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Propiedad no encontrada' });
+        }
+        res.json({ message: 'Propiedad actualizada con éxito' });
+    });
 });
 
 
