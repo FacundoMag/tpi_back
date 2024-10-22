@@ -22,7 +22,7 @@ const upload = multer({ storage: storage });
 // Obtener todas las propiedades
 router.get('/', (req, res) => {
     const sql = 'SELECT * FROM propiedades';
-    conexion.query(sql, (err, results) => { 
+    conexion.query(sql, (err, results) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
@@ -50,25 +50,25 @@ router.get('/:id', (req, res) => {
 });
 
 
-router.get('/newpropiedad', function(req, res, next){
+router.get('/newpropiedad', function (req, res, next) {
     const ciudadesSQL = "SELECT id, nombre FROM ciudad";
     const tipoSQL = "SELECT id, nombre FROM tipo_propiedad";
-    
 
-    conexion.query(ciudadesSQL, function(err, ciudades){
-        if (err){
-            return res.status(500).json({ error: "no se encontro ninguna ciudad"})
+
+    conexion.query(ciudadesSQL, function (err, ciudades) {
+        if (err) {
+            return res.status(500).json({ error: "no se encontro ninguna ciudad" })
         }
 
-        conexion.query(tipoSQL, function(err, tipo_propiedad){
-            if (err){
-                return res.status(500).json({ error: "tipo de propiedad no encontrado"})
+        conexion.query(tipoSQL, function (err, tipo_propiedad) {
+            if (err) {
+                return res.status(500).json({ error: "tipo de propiedad no encontrado" })
             }
 
-                       
+
             res.status(200).json({
-                   ciudades,
-                   tipo_propiedad
+                ciudades,
+                tipo_propiedad
             })
         })
 
@@ -89,43 +89,45 @@ router.post('/newpropiedad', upload.single('imagen'), (req, res) => {
     const verificacionToken = verificarToken(token, TOKEN_SECRET);
     const usuario_id = verificacionToken?.data?.usuario_id;
 
-    const { nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado_id, descripcion } = req.body;
+    const { nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion } = req.body;
+
 
     // Primero insertar la propiedad
     const sqlPropiedad = `INSERT INTO propiedades 
-                         (registra_usuario_id, nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado_id, descripcion) 
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                         (registra_usuario_id, nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion) 
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-    conexion.query(sqlPropiedad, [usuario_id, nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, estado_id, descripcion], (err, result) => {
+    conexion.query(sqlPropiedad, [usuario_id, nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion], (err, result) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
 
-        const propiedadId = result.insertId;
+            const propiedadId = result.insertId;
 
-        // Guardar la URL de la imagen en la tabla de imágenes, asociada a la propiedad creada
-        if (req.file) {
-            const imagenUrl = `/uploads/${req.file.filename}`;
-            const sqlImagen = `INSERT INTO imagenes (propiedad_id, url) VALUES (?, ?)`;
+            // Guardar la URL de la imagen en la tabla de imágenes, asociada a la propiedad creada
+            if (req.file) {
+                const imagenUrl = `${req.file.filename}`;
+                const sqlImagen = `INSERT INTO imagenes (propiedad_id, url) VALUES (?, ?)`;
 
-            conexion.query(sqlImagen, [propiedadId, imagenUrl], (err, result) => {
-                if (err) {
-                    return res.status(500).json({ error: err.message });
-                }
+                conexion.query(sqlImagen, [propiedadId, imagenUrl], (err, result) => {
+                    if (err) {
+                        console.log("El error: " + err)
+                        return res.status(500).json({ error: err.message });
+                    }
 
-                res.status(201).json({ 
-                    message: 'Propiedad y imagen creadas con éxito',
-                    propiedadId: propiedadId,
-                    imagenUrl: imagenUrl
+                    res.status(201).json({
+                        message: 'Propiedad e imagen creadas con éxito',
+                        propiedadId: propiedadId,
+                        imagenUrl: imagenUrl
+                    });
                 });
-            });
-        } else {
-            res.status(201).json({ 
-                message: 'Propiedad creada sin imagen', 
-                propiedadId: propiedadId 
-            });
-        }
-    });
+            } else {
+                res.status(201).json({
+                    message: 'Propiedad creada sin imagen',
+                    propiedadId: propiedadId
+                });
+            }
+        });
 });
 
 // Actualizar una propiedad por ID
