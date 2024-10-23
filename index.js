@@ -18,4 +18,4 @@ app.use('/api', apiRouter);
 
 app.listen(port , ()=>{
     console.log(`ejecutando en el puerto ${port}`)
-} )
+})

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const conexion = require('../db/conexion');
+const { enviarCorreo, obtenerCorreos } = require('./correo');
 
 // Obtener todas las reservaciones
 router.get('/', (req, res) => {
@@ -28,35 +29,25 @@ router.get('/:id', (req, res) => {
     });
 });
 
-// Obtener fechas ocupadas para una propiedad específica
-router.get('/fechas-ocupadas/:propiedadId', (req, res) => {
-    const { propiedadId } = req.params;
-    console.log(`Propiedad ID recibido: ${propiedadId}`); // Para verificar el ID que llega en la petición
-    
-    const sql = 'SELECT fecha_inicio AS inicio, fecha_fin AS fin FROM reservaciones WHERE propiedad_id = ?';
-    conexion.query(sql, [propiedadId], (err, results) => {
-        if (err) {
-            console.log('Error en la consulta:', err); // Para verificar si hay algún error en la consulta
-            return res.status(500).json({ error: err.message });
-        }
-        console.log('Resultados:', results); // Para verificar los resultados que devuelve la consulta
-        if (results.length === 0) {
-            return res.status(404).json({ message: 'No hay reservas para esta propiedad.' });
-        }
-        res.json(results);
-    });
-});
-
-
 // Crear una nueva reservación
 router.post('/', (req, res) => {
-    const { propiedad_id, fecha_inicio, fecha_fin, fecha_reserva, monto_total } = req.body;
-    const sql = `INSERT INTO reservaciones (propiedad_id, fecha_inicio, fecha_fin, fecha_reserva, monto_total) 
-                 VALUES (?, ?, ?, ?, ?)`;
-    conexion.query(sql, [propiedad_id, fecha_inicio, fecha_fin, fecha_reserva, monto_total], (err, result) => {
+    const { propiedad_id, usuario_id, fecha_inicio, fecha_fin, fecha_reserva, monto_total } = req.body;
+    const sql = 'INSERT INTO reservaciones (propiedad_id, usuario_id, fecha_inicio, fecha_fin, fecha_reserva, monto_total) VALUES (?, ?, ?, ?, ?, ?)';
+    
+    conexion.query(sql, [propiedad_id, usuario_id, fecha_inicio, fecha_fin, fecha_reserva, monto_total], (err, result) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
+
+        // Obtener correos y enviar notificación
+        obtenerCorreos(propiedad_id, usuario_id, (correos) => {
+            if (correos) {
+                const asunto = 'Confirmación de Nueva Reservación';
+                const mensaje = `Una nueva reservación ha sido creada para la propiedad con ID: ${propiedad_id} por el usuario con ID: ${usuario_id}.`;
+                enviarCorreo([correos.correo_usuario, correos.correo_propietario], asunto, mensaje);
+            }
+        });
+
         res.status(201).json({ message: 'Reservación creada con éxito', reservacionId: result.insertId });
     });
 });
@@ -64,16 +55,23 @@ router.post('/', (req, res) => {
 // Actualizar una reservación por ID
 router.put('/:id', (req, res) => {
     const { id } = req.params;
-    const { propiedad_id, fecha_inicio, fecha_fin, fecha_reserva, monto_total } = req.body;
-    const sql = `UPDATE reservaciones SET propiedad_id = ?, fecha_inicio = ?, fecha_fin = ?, 
-                 fecha_reserva = ?, monto_total = ? WHERE id = ?`;
-    conexion.query(sql, [propiedad_id, fecha_inicio, fecha_fin, fecha_reserva, monto_total, id], (err, result) => {
+    const { propiedad_id, usuario_id, fecha_inicio, fecha_fin, fecha_reserva, monto_total } = req.body;
+    const sql = 'UPDATE reservaciones SET propiedad_id = ?, usuario_id = ?, fecha_inicio = ?, fecha_fin = ?, fecha_reserva = ?, monto_total = ? WHERE id = ?';
+    
+    conexion.query(sql, [propiedad_id, usuario_id, fecha_inicio, fecha_fin, fecha_reserva, monto_total, id], (err, result) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Reservación no encontrada' });
-        }
+
+        // Obtener correos y enviar notificación
+        obtenerCorreos(propiedad_id, usuario_id, (correos) => {
+            if (correos) {
+                const asunto = 'Confirmación de Actualización de Reservación';
+                const mensaje = `La reservación con ID: ${id} ha sido actualizada.`;
+                enviarCorreo([correos.correo_usuario, correos.correo_propietario], asunto, mensaje);
+            }
+        });
+
         res.json({ message: 'Reservación actualizada con éxito' });
     });
 });
@@ -82,14 +80,30 @@ router.put('/:id', (req, res) => {
 router.delete('/:id', (req, res) => {
     const { id } = req.params;
     const sql = 'DELETE FROM reservaciones WHERE id = ?';
-    conexion.query(sql, [id], (err, result) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
+
+    // Consultar los datos de la reservación antes de eliminarla para obtener los correos
+    conexion.query('SELECT propiedad_id, usuario_id FROM reservaciones WHERE id = ?', [id], (err, reservacion) => {
+        if (err || reservacion.length === 0) {
+            return res.status(500).json({ error: 'Error al buscar la reservación antes de eliminar.' });
         }
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Reservación no encontrada' });
-        }
-        res.json({ message: 'Reservación eliminada con éxito' });
+        const { propiedad_id, usuario_id } = reservacion[0];
+
+        conexion.query(sql, [id], (err, result) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+
+            // Obtener correos y enviar notificación
+            obtenerCorreos(propiedad_id, usuario_id, (correos) => {
+                if (correos) {
+                    const asunto = 'Confirmación de Cancelación de Reservación';
+                    const mensaje = `La reservación con ID: ${id} ha sido cancelada.`;
+                    enviarCorreo([correos.correo_usuario, correos.correo_propietario], asunto, mensaje);
+                }
+            });
+
+            res.json({ message: 'Reservación eliminada con éxito' });
+        });
     });
 });
 
