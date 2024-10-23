@@ -94,10 +94,10 @@ router.post('/newpropiedad', upload.single('imagen'), (req, res) => {
 
     // Primero insertar la propiedad
     const sqlPropiedad = `INSERT INTO propiedades 
-                         (registra_usuario_id, nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion) 
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                         (usuario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion) 
+                         VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-    conexion.query(sqlPropiedad, [usuario_id, nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion], (err, result) => {
+    conexion.query(sqlPropiedad, [usuario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion], (err, result) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
