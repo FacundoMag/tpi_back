@@ -220,10 +220,9 @@ router.put('/edit', (req, res) => {
 
 });
 
-
-
-router.delete('/:id', (req, res) => {
-    const { id } = req.params;
+// Eliminar una propiedad por ID
+router.delete('/', (req, res) => {
+    const { id } = req.query;
     const sql = 'DELETE FROM propiedades WHERE id = ?';
     conexion.query(sql, [id], (err, result) => {
         if (err) {
