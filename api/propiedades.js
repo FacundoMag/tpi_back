@@ -282,4 +282,10 @@ router.delete('/', (req, res) => {
 
 });
 
+router.post('/propiedad/reseña', function(req, res, next){
+    const {propiedad_id} = req.query;
+    const token = req.headers.authorization;
+    const {comentario, puntuacion} = req.body;
+})
+
 module.exports = router;
