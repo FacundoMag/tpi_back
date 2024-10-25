@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const conexion = require('../db/conexion');
 const multer = require('multer');
+const path = require('path');
+const fs = require('fs')
 const { verificarToken } = require('@damianegreco/hashpass');
 
 const TOKEN_SECRET = "EQUIPO_GOAT";
@@ -36,22 +38,28 @@ router.get('/', function(req, res, next){
 })
 
 
-router.get('/:id', (req, res) => {
-    const { id } = req.params;
-    const sql = `SELECT propiedades.*, imagenes.url as imagen_url 
-                 FROM propiedades 
-                 LEFT JOIN imagenes ON propiedades.id = imagenes.propiedad_id 
-                 WHERE propiedades.id = ?`;
-
-    conexion.query(sql, [id], (err, results) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
+router.get('/propiedad', (req, res) => {
+     const {id} = req.query;
+     const sql = "SELECT propiedades.nombre, propiedades.direccion, ciudad.nombre AS ciudad, propiedades.num_habitaciones, propiedades.num_banos, propiedades.capacidad, propiedades.tamano_m2, propiedades.precio_renta, tipo_propiedad.nombre AS tipo_propiedad, propiedades.descripcion FROM propiedades JOIN ciudad ON propiedades.ciudad_id = ciudad.id JOIN tipo_propiedad ON propiedades.tipo_id = tipo_propiedad.id  WHERE propiedades.id = ?";
+     const sql2 = "SELECT url FROM imagenes WHERE propiedad_id = ?";
+     conexion.query(sql, [id], function(error, propiedad){
+        if (error){
+            return res.status(403).json({
+                error: error.message
+            })
         }
-        if (results.length === 0) {
-            return res.status(404).json({ message: 'Propiedad no encontrada' });
-        }
-        res.json(results[0]); 
-    });
+        conexion.query(sql2, [id], function(error, urls){
+            if (error){
+                return res.status(403).json({
+                    error: error.message
+                })
+            }
+            res.json({
+                propiedad,
+                urls
+            })
+        })
+     })
 });
 
 
@@ -104,10 +112,10 @@ router.post('/newpropiedad', upload, (req, res) => {
 
     
     const sqlPropiedad = `INSERT INTO propiedades 
-                         (usuario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion) 
-                         VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                         (registra_usuario_id, nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion) 
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-    conexion.query(sqlPropiedad, [usuario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion], (err, result) => {
+    conexion.query(sqlPropiedad, [usuario_id, nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion], (err, result) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
@@ -222,18 +230,56 @@ router.put('/edit', (req, res) => {
 
 
 
-router.delete('/:id', (req, res) => {
-    const { id } = req.params;
+router.delete('/', (req, res) => {
+    const { id } = req.query;
+    const imagenSQL ="SELECT url FROM imagenes WHERE propiedad_id = ?";
     const sql = 'DELETE FROM propiedades WHERE id = ?';
-    conexion.query(sql, [id], (err, result) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Propiedad no encontrada' });
-        }
-        res.json({ message: 'Propiedad eliminada con éxito' });
-    });
+    const sql2 ="DELETE FROM imagenes WHERE propiedad_id = ?";
+
+    conexion.query(imagenSQL, [id], function(error, imagenes){
+            if(error){
+                return res.status(500).json({
+                    error: error.message
+                })
+            }
+
+            if(imagenes.length > 0){
+                imagenes.forEach(imagen =>{
+                    
+                    const imagePath = path.join(__dirname, '..', 'uploads', imagen.url);
+                    console.log(imagePath);
+
+                    console.log(`Intentando eliminar imagen en: ${imagePath}`);
+
+                    fs.unlink(imagePath, (err)=>{
+                        if(err){
+                            console.error(`Error al eliminar la imagen: ${imagePath} - Detalle: ${err.message}`);
+                        }
+                        else{
+                            console.log('imagen eliminada: ${imagePath}');
+                        }
+                    })
+                })
+            }
+
+            conexion.query(sql2, [id], (err, result) => {
+                if (err) {
+                    return res.status(500).json({ error: err.message });
+                }
+                if (result.affectedRows === 0) {
+                    return res.status(404).json({ message: err.message });
+                }
+                conexion.query(sql, [id], function(error, result){
+                    if (error){
+                        return res.status(400).json({
+                            error: 'propiedad no encontrada'
+                        })
+                    }
+                    res.json({ message: 'Propiedad eliminada con éxito' });
+                })
+            });
+    })
+
 });
 
 module.exports = router;
