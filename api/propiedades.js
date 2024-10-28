@@ -42,21 +42,30 @@ router.get('/propiedad', (req, res) => {
      const {id} = req.query;
      const sql = "SELECT propiedades.nombre, propiedades.direccion, ciudad.nombre AS ciudad, propiedades.num_habitaciones, propiedades.num_banos, propiedades.capacidad, propiedades.tamano_m2, propiedades.precio_renta, tipo_propiedad.nombre AS tipo_propiedad, propiedades.descripcion FROM propiedades JOIN ciudad ON propiedades.ciudad_id = ciudad.id JOIN tipo_propiedad ON propiedades.tipo_id = tipo_propiedad.id  WHERE propiedades.id = ?";
      const sql2 = "SELECT url FROM imagenes WHERE propiedad_id = ?";
+     const sql3 = "SELECT comentario, puntuacion FROM reseñas WHERE propiedad_id = ?";
      conexion.query(sql, [id], function(error, propiedad){
         if (error){
             return res.status(403).json({
-                error: error.message
+                error: 'error al cargar la propiedad'
             })
         }
         conexion.query(sql2, [id], function(error, urls){
             if (error){
                 return res.status(403).json({
-                    error: error.message
+                    error: 'erro al cargar las urls'
                 })
             }
+            conexion.query(sql3, [id], function(error, reseñas){
+                if (error){
+                    return res.status(401).json({
+                        error: 'error al cargar las reseñas'
+                    })
+                }
+            })
             res.json({
                 propiedad,
-                urls
+                urls,
+                reseñas
             })
         })
      })
@@ -282,10 +291,37 @@ router.delete('/', (req, res) => {
 
 });
 
-router.post('/propiedad/reseña', function(req, res, next){
+router.post('/propiedad/resena', function(req, res, next){
     const {propiedad_id} = req.query;
     const token = req.headers.authorization;
     const {comentario, puntuacion} = req.body;
+    
+    if(token === undefined || token === null){
+        console.error('sin token');
+        res.status(403).res.json({
+            status: 'error', error: 'sin token'
+        })
+    } 
+
+   const  verificacionToken = verificarToken(token, TOKEN_SECRET);
+   const usuario_id = verificacionToken?.data?.usuario_id;
+   const sql = "INSERT INTO reseñas (usuario_id, propiedad_id, comentario, puntuacion) VALUES (?, ?, ?, ?)";
+
+   conexion.query(sql, [usuario_id, propiedad_id, comentario, puntuacion], function(error, result){
+    if (error){
+        return res.status(500).json({
+            error: 'error al crear la reseña'
+        })
+    }
+    res.status(200).json({
+        message: 'reseña creada exitosamente',
+        result
+    })
+   })
+
+
+
+
 })
 
 module.exports = router;
