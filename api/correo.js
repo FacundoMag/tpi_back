@@ -9,8 +9,8 @@ const transporter = nodemailer.createTransport({
     port: 465,
     secure: true,
     auth: {
-        user: "escapessouthern@gmail.com",  
-        pass: "abdd ggvh obpc ekye"   
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS  
     }
 });
 
@@ -33,38 +33,25 @@ const enviarCorreo = (destinatarios, asunto, mensaje) => {
             console.error(error)
             reject(error)
         })
-            /*if (error) {
-                console.log('Error al enviar el correo: ', error);
-                reject(error)
-            } else {
-                console.log('Correo enviado: ' + info.response);
-                resolve()
-            }
-        });
-            */
     })
     
 };
 
-// Función para obtener los correos del usuario y propietario
-const obtenerCorreos = (propiedad_id, usuario_id) => {
+// Función para obtener correos de propietario e inquilino
+const obtenerCorreos = (inquilino_id, propietario_id) => {
     return new Promise((resolve, reject) => {
-        const correoSql = `
-            SELECT u1.correo AS correo_usuario, u2.correo AS correo_propietario
-            FROM usuarios u1
-            JOIN propiedades p ON p.id = ?
-            JOIN usuarios u2 ON p.usuario_id = u2.id
-            WHERE u1.id = ?`;
-
-        conexion.query(correoSql, [propiedad_id, usuario_id], (error, correos) => {
-            if (error) {
-                console.log('Error al obtener correos: ', error);
-                return reject(error); // Rechazar la promesa si hay un error
-            } else if (correos.length > 0) {
-                return resolve(correos[0]);  // Devuelve los correos en un objeto
-            } else {
-                return resolve(null); // Resolver con null si no se encontraron correos
+        const sql = `
+            SELECT u1.correo AS correo_inquilino, u2.correo AS correo_propietario 
+            FROM usuarios u1, usuarios u2 
+            WHERE u1.id = ? AND u2.id = ?`;
+        
+        conexion.query(sql, [inquilino_id, propietario_id], (err, result) => {
+            if (err || result.length === 0) {
+                return reject('Error al obtener correos');
             }
+            // Destructura correctamente los correos
+            const { correo_inquilino, correo_propietario } = result[0];
+            resolve({ correo_inquilino, correo_propietario });
         });
     });
 };
