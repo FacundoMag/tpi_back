@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs')
 const { verificarToken } = require('@damianegreco/hashpass');
 
+
 const TOKEN_SECRET = "EQUIPO_GOAT";
 
 
@@ -77,33 +78,32 @@ router.get('/propiedad', (req, res) => {
 
 
 
-router.get('/newpropiedad', function (req, res, next) {
+router.get('/', function (req, res, next) {
     const ciudadesSQL = "SELECT id, nombre FROM ciudad";
     const tipoSQL = "SELECT id, nombre FROM tipo_propiedad";
-
-
     conexion.query(ciudadesSQL, function (err, ciudades) {
         if (err) {
             return res.status(500).json({ error: "no se encontro ninguna ciudad" })
         }
-
-        conexion.query(tipoSQL, function (err, tipo_propiedad) {
-            if (err) {
-                return res.status(500).json({ error: "tipo de propiedad no encontrado" })
+        conexion.query(tipoSQL, function(error, tipo_propiedades){
+            if (error){
+                return res.status(500).json({
+                    error: "no se encontro ningun tipo de propiedad"
+                })
             }
-
-
-            res.status(200).json({
+            res.json({
                 ciudades,
-                tipo_propiedad
+                tipo_propiedades
             })
         })
+    
 
-    })
-})
+})})
 
 
-router.post('/newpropiedad', upload, (req, res) => {
+
+
+router.post('/', upload, (req, res) => {
     const token = req.headers.authorization;
 
     if (!token) {
@@ -114,8 +114,11 @@ router.post('/newpropiedad', upload, (req, res) => {
     }
 
     const verificacionToken = verificarToken(token, TOKEN_SECRET);
-    const usuario_id = verificacionToken?.data?.usuario_id;
+    req.user_id = verificacionToken?.data?.usuario_id
+    next()
 
+router.post('/', function(req, res, next){
+    const usuario_id = req.user_id;
     const { nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion } = req.body;
 
 
@@ -175,9 +178,10 @@ router.post('/newpropiedad', upload, (req, res) => {
             }
         });
 });
+})
 
 
-router.put('/edit', (req, res) => {
+router.put('/', (req, res) => {
    const {propiedad_id} = req.query;
    const token = req.headers.authorization;
    if(!token || !propiedad_id){
