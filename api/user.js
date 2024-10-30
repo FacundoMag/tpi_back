@@ -2,8 +2,9 @@ const express = require('express')
 const router = express.Router();
 const {hashPass, verificarPass, generarToken, verificarToken} = require('@damianegreco/hashpass');
 const conexion = require('../db/conexion');
+require('dotenv').config();
 
-const TOKEN_SECRET = "EQUIPO_GOAT"
+const TOKEN_SECRET = process.env.TOKEN_SECRET;
 
 
 
@@ -130,27 +131,50 @@ router.put('/edit', function(req, res, next){
         })
     })
 
+    router.post('/favoritos', (req, res) => {
+        const { id, propiedad_id } = req.body; // `id` es el usuario que marca la propiedad como favorita
+        const sql = 'INSERT INTO favoritos (usuario_id, propiedad_id) VALUES (?, ?)';
+        conexion.query(sql, [id, propiedad_id], (error, result) => {
+            if (error) {
+                console.error(error);
+                return res.status(500).json({ status: 'error', error: 'Error al marcar como favorito' });
+            }
+            res.json({ status: 'ok', message: 'Propiedad marcada como favorita' });
+        });
+    });
+    
+    
+    router.delete('/favoritos', (req, res) => {
+        const { id, propiedad_id } = req.body;
+        const sql = 'DELETE FROM favoritos WHERE usuario_id = ? AND propiedad_id = ?';
+        conexion.query(sql, [id, propiedad_id], (error, result) => {
+            if (error) {
+                console.error(error);
+                return res.status(500).json({ status: 'error', error: 'Error al quitar de favoritos' });
+            }
+            res.json({ status: 'ok', message: 'Propiedad quitada de favoritos' });
+        });
+    });
     
 
-
-
-
-
-
-    // const consul = "SELECT * FROM usuarios WHERE id = ? OR token = ?";
-    // conexion.query(consul, [id, token], function(error, result){
-    //     if(error){
-    //         console.error(error);
-    //         return res.status(300).send('id no econtrado')
-    //     } 
-    //     console.log(result)
-             
-        
-    // }
-    // )
-
+    router.get('/favoritos', (req, res) => {
+        const { id } = req.query;
+        const sql = `
+            SELECT propiedades.*
+            FROM propiedades
+            JOIN favoritos ON propiedades.id = favoritos.propiedad_id
+            WHERE favoritos.usuario_id = ?
+        `;
+        conexion.query(sql, [id], (error, results) => {
+            if (error) {
+                console.error(error);
+                return res.status(500).json({ status: 'error', error: 'Error al obtener favoritos' });
+            }
+            res.json({ status: 'ok', favoritos: results });
+        });
+    });
     
-
+    
 
 router.get('/mis_propiedades', function(req, res, next){
 

@@ -5,8 +5,9 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs')
 const { verificarToken } = require('@damianegreco/hashpass');
+require('dotenv').config();
 
-const TOKEN_SECRET = "EQUIPO_GOAT";
+const TOKEN_SECRET = process.env.TOKEN_SECRET;
 
 
 const storage = multer.diskStorage({
