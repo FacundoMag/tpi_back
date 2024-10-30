@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const conexion = require('../db/conexion');
 const { enviarCorreo, obtenerCorreos } = require('./correo');
+require('dotenv').config();
+
+const TOKEN_SECRET = process.env.TOKEN_SECRET;
 
 // Obtener todas las reservaciones
 router.get('/', (req, res) => {
@@ -56,9 +59,7 @@ router.post('/', (req, res) => {
                     )
                 ]);
             })
-            .then(() => {
-                res.json({ message: 'Reservación creada y correos enviados.' });
-            })
+            .then(() =>  res.json({ message: 'Reservación creada y correos enviados.' }))
             .catch(error => {
                 console.error('Error al enviar los correos:', error);
                 res.status(500).json({ error: 'Reservación creada, pero ocurrió un error al enviar los correos.' });
