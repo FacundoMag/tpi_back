@@ -295,7 +295,7 @@ router.delete('/', (req, res) => {
 
 });
 
-router.post('/propiedad/resena', function(req, res, next){
+router.post('/propiedad/reseña', function(req, res, next){
     const {propiedad_id} = req.query;
     const token = req.headers.authorization;
     const {comentario, puntuacion} = req.body;
