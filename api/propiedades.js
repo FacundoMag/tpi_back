@@ -41,9 +41,9 @@ router.get('/', function(req, res, next){
 
 router.get('/propiedad', (req, res) => {
      const {id} = req.query;
-     const sql = "SELECT propiedades.nombre, propiedades.direccion, ciudad.nombre AS ciudad, propiedades.num_habitaciones, propiedades.num_banos, propiedades.capacidad, propiedades.tamano_m2, propiedades.precio_renta, tipo_propiedad.nombre AS tipo_propiedad, propiedades.descripcion FROM propiedades JOIN ciudad ON propiedades.ciudad_id = ciudad.id JOIN tipo_propiedad ON propiedades.tipo_id = tipo_propiedad.id  WHERE propiedades.id = ?";
+     const sql = "SELECT  propiedades.direccion, ciudad.nombre AS ciudad, propiedades.num_habitaciones, propiedades.num_banos, propiedades.capacidad, propiedades.tamano_m2, propiedades.precio_renta, tipo_de_propiedad.nombre AS tipo_de_propiedad, propiedades.descripcion FROM propiedades JOIN ciudad ON propiedades.ciudad_id = ciudad.id JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id  WHERE propiedades.id = ?";
      const sql2 = "SELECT url FROM imagenes WHERE propiedad_id = ?";
-     const sql3 = "SELECT comentario, puntuacion FROM reseñas WHERE propiedad_id = ?";
+     const sql3 = "SELECT usuarios.nombre AS usuarios, usuarios.apellido AS usuarios, resena.comentario, resena.valoracion FROM resenas JOIN usuarios ON resenas.usuario_id = usuarios.id WHERE resena.propiedad_id = ?";
      conexion.query(sql, [id], function(error, propiedad){
         if (error){
             return res.status(403).json({
@@ -200,7 +200,7 @@ router.put('/', (req, res) => {
    }
 
    const user_id = verificacionToken?.data?.usuario_id;
-   const sql = "SELECT registra_usuario_id FROM propiedades WHERE id = ?";
+   const sql = "SELECT propietario_id FROM propiedades WHERE id = ?";
    conexion.query(sql, [propiedad_id], function(error, result){
 
     if (error) {
@@ -219,9 +219,9 @@ router.put('/', (req, res) => {
        })
     }
     
-    const {nombre, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion} = req.body;
-    const sql2 = "UPDATE propiedades SET nombre = ?, num_habitaciones = ?, num_banos = ?, capacidad = ?, tamano_m2 = ?, precio_renta = ?, tipo_id = ?, descripcion = ? WHERE id = ?";
-    conexion.query(sql2, [nombre, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion, propiedad_id, user_id], function(err, result){
+    const { num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion} = req.body;
+    const sql2 = "UPDATE propiedades SET  num_habitaciones = ?, num_banos = ?, capacidad = ?, tamano_m2 = ?, precio_renta = ?, tipo_id = ?, descripcion = ? WHERE id = ?";
+    conexion.query(sql2, [ num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion, propiedad_id, user_id], function(err, result){
         if (err){
             console.error(err);
             return res.status(403).json({
@@ -307,7 +307,7 @@ router.post('/propiedad/reseña', function(req, res, next){
 
    const  verificacionToken = verificarToken(token, TOKEN_SECRET);
    const usuario_id = verificacionToken?.data?.usuario_id;
-   const sql = "INSERT INTO reseñas (usuario_id, propiedad_id, comentario, puntuacion) VALUES (?, ?, ?, ?)";
+   const sql = "INSERT INTO resenas (usuario_id, propiedad_id, comentario, valoracion) VALUES (?, ?, ?, ?)";
 
    conexion.query(sql, [usuario_id, propiedad_id, comentario, puntuacion], function(error, result){
     if (error){
