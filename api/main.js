@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const {verificarToken} = require('@damianegreco/hashpass');
+require('dotenv').config();
 
 const propiedadesRouter = require('./propiedades');
 
@@ -8,8 +9,7 @@ const userRouter = require('./user');
 const reservacionRouter = require('./reservacion');
 
 
-
-const TOKEN_SECRET = "EQUIPO_GOAT"
+const TOKEN_SECRET = process.env.SECRET_TOKEN;
 
 
 
