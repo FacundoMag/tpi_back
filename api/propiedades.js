@@ -114,20 +114,18 @@ router.post('/', upload, (req, res) => {
     }
 
     const verificacionToken = verificarToken(token, TOKEN_SECRET);
-    req.user_id = verificacionToken?.data?.usuario_id
-    next()
+    const usuario_id =verificacionToken?.data?.usuario_id
 
-router.post('/', function(req, res, next){
-    const usuario_id = req.user_id;
-    const { nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion } = req.body;
+
+    const { direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion } = req.body;
 
 
     
     const sqlPropiedad = `INSERT INTO propiedades 
-                         (registra_usuario_id, nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion) 
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                         (propietario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion) 
+                         VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-    conexion.query(sqlPropiedad, [usuario_id, nombre, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion], (err, result) => {
+    conexion.query(sqlPropiedad, [usuario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion], (err, result) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
@@ -178,7 +176,7 @@ router.post('/', function(req, res, next){
             }
         });
 });
-})
+
 
 
 router.put('/', (req, res) => {
