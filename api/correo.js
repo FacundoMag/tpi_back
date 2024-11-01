@@ -2,6 +2,8 @@ const nodemailer = require('nodemailer');
 const conexion = require('../db/conexion');
 require('dotenv').config(); 
 
+const TOKEN_SECRET = process.env.TOKEN_SECRET;
+
 // Configurar nodemailer con las variables de entorno
 const transporter = nodemailer.createTransport({
     service: 'Gmail',  
