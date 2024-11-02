@@ -81,6 +81,7 @@ router.get('/propiedad', (req, res) => {
 router.get('/', function (req, res, next) {
     const ciudadesSQL = "SELECT id, nombre FROM ciudad";
     const tipoSQL = "SELECT id, nombre FROM tipo_propiedad";
+    const servicioSQL = "SELECT id, servicio FROM servicios";
     conexion.query(ciudadesSQL, function (err, ciudades) {
         if (err) {
             return res.status(500).json({ error: "no se encontro ninguna ciudad" })
@@ -91,9 +92,16 @@ router.get('/', function (req, res, next) {
                     error: "no se encontro ningun tipo de propiedad"
                 })
             }
-            res.json({
-                ciudades,
-                tipo_propiedades
+            conexion.query(servicioSQL, function(error, servicios){
+                   if(error){
+                    return res.status(500).json({
+                        error: "no se encontro ningun servicio"
+                    })
+                   }
+                   res.json({
+                       ciudades,
+                       tipo_propiedades
+                   })
             })
         })
     
@@ -116,21 +124,41 @@ router.post('/', upload, (req, res) => {
     const verificacionToken = verificarToken(token, TOKEN_SECRET);
     const usuario_id =verificacionToken?.data?.usuario_id
 
-
+ 
     const { direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion } = req.body;
-
-
+    const servicios = req.body.servicios;
+    const serviciosSeleccionados = Array.isArray(servicios) ? servicios.join(',') : servicios;
     
     const sqlPropiedad = `INSERT INTO propiedades 
                          (propietario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion) 
                          VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-
-    conexion.query(sqlPropiedad, [usuario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion], (err, result) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-
+                         
+                         conexion.query(sqlPropiedad, [usuario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion], (err, result) => {
+                             if (err) {
+                                 return res.status(500).json({ error: err.message });
+                                }
+            
+                                
+           const sqlServicioPropiedad = "INSERT INTO propiedades_servicios (servicio_id, propiedad_id) VALUES (?, ?);"
+                                
             const propiedadId = result.insertId;
+
+            if (serviciosComoString.length > 0){
+                const ingresarServicios = serviciosSeleccionados.map(servicio_id =>{
+                    return new Promise((resolve, reject)=>{
+                        conexion.query(sqlServicioPropiedad, [servicio_id, propiedadId], function(error, result){
+                            if(error){
+                                return reject(error);
+                            }
+                            resolve(result)
+                        })
+
+                    })
+                })
+
+                Promise.all(ingresarServicios)
+                
+            }
 
             if (req.files && req.files.length > 0) {
 
