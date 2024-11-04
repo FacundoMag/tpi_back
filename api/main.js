@@ -9,12 +9,13 @@ const userRouter = require('./user');
 const reservacionRouter = require('./reservacion');
 
 
-const TOKEN_SECRET = process.env.SECRET_TOKEN;
+const TOKEN_SECRET = process.env.TOKEN_SECRET;
 
 
 
 router.use('/propiedades', function(req, res, next){
     const token = req.headers.authorization;
+    console.log(token)
     if(token === undefined || token === null){
         console.error('sin token');
         res.status(403).res.json({
@@ -22,7 +23,9 @@ router.use('/propiedades', function(req, res, next){
         })
     } else{
         const verificacionToken = verificarToken(token, TOKEN_SECRET)
+        
         if(verificacionToken?.data?.usuario_id !== undefined){
+            
             next()
         } else{
             res.json({
