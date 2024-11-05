@@ -25,7 +25,7 @@ const upload = multer({ storage: storage }).array('imagen', 10);
 
 
 router.get('/', function (req, res, next) {
-    const sql = "SELECT propiedades.id, imagenes.url, propiedades.precio_renta, propiedades.direccion, propiedades.num_habitaciones, propiedades.num_banos FROM propiedades JOIN imagenes ON propiedades.id = imagenes.propiedad_id  ";
+    const sql = "SELECT propiedades.id, imagenes.url, propiedades.precio_renta, propiedades.direccion, propiedades.num_habitaciones, propiedades.num_banos, tipo_de_propiedad.nombre FROM propiedades JOIN imagenes ON propiedades.id = imagenes.propiedad_id JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id";
     
     conexion.query(sql, function (err, propiedadesConimg) {
         if (err) {
