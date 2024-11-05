@@ -8,38 +8,45 @@ const userRouter = require('./user');
 
 const reservacionRouter = require('./reservacion');
 
+//const propPublicRouter = require('./public')
+
 
 const TOKEN_SECRET = process.env.TOKEN_SECRET;
 
 
 
-router.use('/propiedades', function(req, res, next){
-    const token = req.headers.authorization;
-    console.log(token)
-    if(token === undefined || token === null){
-        console.error('sin token');
-        res.status(403).res.json({
-            status: 'error', error: 'sin token'
-        })
-    } else{
-        const verificacionToken = verificarToken(token, TOKEN_SECRET)
-        
-        if(verificacionToken?.data?.usuario_id !== undefined){
-            
-            next()
-        } else{
-            res.json({
-                status: 'error',
-                error: 'token incorrecto'
-            })
-        }
+router.use('/propiedades', function(req, res, next) {
+    // Permitir solicitudes GET sin token
+    if (req.method === 'GET') {
+        return next();
     }
 
+    // Verificar token para otros métodos
+    const token = req.headers.authorization;
+    if (!token) {
+        console.error('Sin token');
+        return res.status(403).json({
+            status: 'error',
+            error: 'sin token'
+        });
+    }
+
+    const verificacionToken = verificarToken(token, TOKEN_SECRET);
+    if (verificacionToken?.data?.usuario_id !== undefined) {
+        next();
+    } else {
+        res.json({
+            status: 'error',
+            error: 'token incorrecto'
+        });
+    }
 });
 
 
+
 router.use('/reservacion', function(req, res, next){
-     const token = req.headers.authorization;
+
+    const token = req.headers.authorization;
      if(token === undefined || token === null){
          console.error('sin token');
          res.status(403).res.json({
@@ -63,6 +70,8 @@ router.use('/propiedades', propiedadesRouter)
 router.use('/reservacion', reservacionRouter);
 
 router.use('/user', userRouter);
+
+//router.use('/public', propPublicRouter)
 
 
 
