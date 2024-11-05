@@ -22,7 +22,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage }).array('imagen', 10);
 
 router.get('/', function (req, res, next) {
-    const sql = "SELECT propiedades.id, imagenes.url, propiedades.precio_renta, propiedades.direccion, propiedades.num_habitaciones, propiedades.num_banos FROM propiedades JOIN imagenes ON propiedades.id = imagenes.propiedad_id  ";
+    const sql = "SELECT propiedades.id,  CONCAT('http://localhost:5000/uploads/', imagenes.url) AS imagen_url,, propiedades.precio_renta, propiedades.direccion, propiedades.num_habitaciones, propiedades.num_banos FROM propiedades JOIN imagenes ON propiedades.id = imagenes.propiedad_id  ";
 
     conexion.query(sql, function (err, propiedadesConimg) {
         if (err) {
