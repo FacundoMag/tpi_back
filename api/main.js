@@ -1,4 +1,5 @@
-const router = require('express').Router();
+const express = require('express');
+const router = express.Router();
 const {verificarToken} = require('@damianegreco/hashpass');
 require('dotenv').config();
 
@@ -70,6 +71,8 @@ router.use('/propiedades', propiedadesRouter)
 router.use('/reservacion', reservacionRouter);
 
 router.use('/user', userRouter);
+
+router.use('/imagenes', express.static('./uploads/') )
 
 //router.use('/public', propPublicRouter)
 

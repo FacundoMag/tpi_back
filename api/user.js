@@ -42,20 +42,15 @@ router.post('/registrarse', function(req, res, next){
            res.json({
             status: 'ok',
             usuarios_id
-           })
-           
-        })
-        
+           }) 
+        })  
     })
-
     .catch((error)=>{
         console.error(error);
         res.json({
             status: 'error', error 
         })
     })
-
-    
 })
 
 router.post('/inicio_sesion', function(req, res, next){
