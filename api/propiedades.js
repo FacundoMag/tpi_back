@@ -246,7 +246,7 @@ router.post('/', upload, (req, res) => {
 router.put('/', (req, res) => {
     const { propiedad_id } = req.query;
     const token = req.headers.authorization;
-    if (!token || !propiedad_id) {
+    if (!token) {
         console.error('acceso denegado');
         return res.status(403).json({
             status: 'error',
