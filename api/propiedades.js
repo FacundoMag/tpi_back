@@ -134,7 +134,8 @@ router.get('/', function (req, res, next) {
                 }
                 res.json({
                     ciudades,
-                    tipo_propiedades
+                    tipo_propiedades,
+                    servicios
                 })
             })
         })
