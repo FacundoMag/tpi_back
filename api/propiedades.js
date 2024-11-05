@@ -82,7 +82,7 @@ router.get('/buscador', function (req, res, next) {
 router.get('/propiedad', (req, res) => {
     const { id } = req.query;
     const sql = "SELECT  propiedades.direccion, ciudad.nombre AS ciudad, propiedades.num_habitaciones, propiedades.num_banos, propiedades.capacidad, propiedades.tamano_m2, propiedades.precio_renta, tipo_de_propiedad.nombre AS tipo_de_propiedad, propiedades.descripcion FROM propiedades JOIN ciudad ON propiedades.ciudad_id = ciudad.id JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id  WHERE propiedades.id = ?";
-    const sql2 = "SELECT url FROM imagenes WHERE propiedad_id = ?";
+    const sql2 = "SELECT  CONCAT('http://localhost:4001/uploads/',url)  FROM imagenes WHERE propiedad_id = ?";
     const sql3 = "SELECT usuarios.nombre AS usuarios, usuarios.apellido AS usuarios, resena.comentario, resena.valoracion FROM resenas JOIN usuarios ON resenas.usuario_id = usuarios.id WHERE resena.propiedad_id = ?";
     conexion.query(sql, [id], function (error, propiedad) {
         if (error) {
