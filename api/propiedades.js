@@ -40,11 +40,11 @@ router.get('/', function (req, res, next) {
 
 router.get('/buscador', function (req, res, next) {
     const { precio, baños, habitaciones, capacidad, ciudad, tipo_propiedad } = req.query;
-    let sql = "SELECT ciudades.nombre AS ciudades, tipo_de_propiedad.nombre AS tipo_de_propiedad, imagenes.url, propiedades.precio_renta, propiedades.capacidad, propiedades.direccion, propiedades.num_habitaciones, propiedades.num_banos FROM propiedades JOIN imagenes ON propiedades.id = imagenes.propiedad_id JOIN ciudades ON propiedades.ciudad_id = ciudades.id JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id WHERE";
+    let sql = "SELECT ciudades.nombre AS ciudades, tipo_de_propiedad.nombre AS tipo_de_propiedad, imagenes.url, propiedades.precio_renta, propiedades.capacidad, propiedades.direccion, propiedades.num_habitaciones, propiedades.num_banos FROM propiedades JOIN imagenes ON propiedades.id = imagenes.propiedad_id JOIN ciudades ON propiedades.ciudad_id = ciudades.id JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id WHERE ";
 
     const filtros = [];
     if (precio) {
-        sql += "propiedades.precio_renta <= ?";
+        sql += "propiedades.precio_renta > ?";
         filtros.push(precio);
     }
     if (baños) {
