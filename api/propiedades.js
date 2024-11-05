@@ -9,7 +9,6 @@ require('dotenv').config();
 
 const TOKEN_SECRET = process.env.TOKEN_SECRET;
 
-
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, 'uploads/');
@@ -22,19 +21,16 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage }).array('imagen', 10);
 
-
-
 router.get('/', function (req, res, next) {
     const sql = "SELECT propiedades.id, imagenes.url, propiedades.precio_renta, propiedades.direccion, propiedades.num_habitaciones, propiedades.num_banos FROM propiedades JOIN imagenes ON propiedades.id = imagenes.propiedad_id  ";
-    
+
     conexion.query(sql, function (err, propiedadesConimg) {
         if (err) {
             return res.status(500).json({ error: err.message })
         }
         res.json({
             propiedadesConimg
-        })    
-    
+        })
     })
 })
 
@@ -81,10 +77,7 @@ router.get('/buscador', function (req, res, next) {
             result
         })
     })
-
-
 })
-
 
 router.get('/propiedad', (req, res) => {
     const { id } = req.query;
@@ -119,12 +112,6 @@ router.get('/propiedad', (req, res) => {
     })
 });
 
-
-
-
-
-
-
 router.get('/', function (req, res, next) {
     const ciudadesSQL = "SELECT id, nombre FROM ciudad";
     const tipoSQL = "SELECT id, nombre FROM tipo_propiedad";
@@ -151,13 +138,8 @@ router.get('/', function (req, res, next) {
                 })
             })
         })
-
-
     })
 })
-
-
-
 
 router.post('/', upload, (req, res) => {
     const token = req.headers.authorization;
@@ -175,7 +157,8 @@ router.post('/', upload, (req, res) => {
 
     const { direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion } = req.body;
     const servicios = req.body.servicios;
-    const serviciosSeleccionados = Array.isArray(servicios) ? servicios.join(',') : servicios;
+    const serviciosSeleccionados = Array.isArray(servicios) ? servicios : [];
+    const serviciosString = serviciosSeleccionados.join('.');
 
     const sqlPropiedad = `INSERT INTO propiedades 
                          (propietario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion) 
@@ -191,7 +174,7 @@ router.post('/', upload, (req, res) => {
 
         const propiedadId = result.insertId;
 
-        if (serviciosComoString.length > 0) {
+        if (serviciosSeleccionados.length > 0) {
             const ingresarServicios = serviciosSeleccionados.map(servicio_id => {
                 return new Promise((resolve, reject) => {
                     conexion.query(sqlServicioPropiedad, [servicio_id, propiedadId], function (error, result) {
@@ -205,6 +188,16 @@ router.post('/', upload, (req, res) => {
             })
 
             Promise.all(ingresarServicios)
+            .then(results => {
+               
+                console.log("Todos los servicios fueron insertados correctamente:", results);
+                res.status(200).json({ message: "Servicios insertados correctamente" });
+            })
+            .catch(error => {
+            
+                console.error("Error al insertar servicios:", error);
+                res.status(500).json({ error: "Error al insertar servicios" });
+            });
 
         }
 
@@ -243,7 +236,7 @@ router.post('/', upload, (req, res) => {
                     res.status(500).json({ error: 'Error al guardar las imágenes: ' + err.message });
                 });
 
-        } 
+        }
     });
 });
 
