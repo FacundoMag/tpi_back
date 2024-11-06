@@ -219,8 +219,6 @@ router.post('/', upload, (req, res) => {
 
             const sqlImagen = `INSERT INTO imagenes (propiedad_id, url) VALUES (?, ?)`;
 
-
-
             const promises = imagenesSubidas.map(imagen => {
                 return new Promise((resolve, reject) => {
                     conexion.query(sqlImagen, [imagen.propiedadId, imagen.imagenUrl], (err, result) => {
