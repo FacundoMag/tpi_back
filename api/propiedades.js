@@ -81,27 +81,32 @@ router.get('/buscador', function (req, res, next) {
 
 router.get('/propiedad', (req, res) => {
     const { id } = req.query;
-    const sql = "SELECT  propiedades.direccion, ciudad.nombre AS ciudad, propiedades.num_habitaciones, propiedades.num_banos, propiedades.capacidad, propiedades.tamano_m2, propiedades.precio_renta, tipo_de_propiedad.nombre AS tipo_de_propiedad, propiedades.descripcion FROM propiedades JOIN ciudad ON propiedades.ciudad_id = ciudad.id JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id  WHERE propiedades.id = ?";
-    const sql2 = "SELECT url FROM imagenes WHERE propiedad_id = ?";
-    const sql3 = "SELECT usuarios.nombre AS usuarios, usuarios.apellido AS usuarios, resena.comentario, resena.valoracion FROM resenas JOIN usuarios ON resenas.usuario_id = usuarios.id WHERE resena.propiedad_id = ?";
+    const sql = "SELECT  propiedades.direccion, ciudades.nombre AS ciudades, propiedades.num_habitaciones, propiedades.num_banos, propiedades.capacidad, propiedades.tamano_m2, propiedades.precio_renta, tipo_de_propiedad.nombre AS tipo_de_propiedad, propiedades.descripcion FROM propiedades JOIN ciudades ON propiedades.ciudad_id = ciudades.id JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id  WHERE propiedades.id = ?";
+    const sql2 = "SELECT  CONCAT('http://localhost:4001/uploads/',url)  FROM imagenes WHERE propiedad_id = ?";
+    const sql3 = "SELECT usuarios.nombre AS usuarios, usuarios.apellido AS usuarios, resenas.comentario, resenas.valoracion FROM resenas JOIN usuarios ON resenas.usuario_id = usuarios.id WHERE resenas.propiedad_id = ?";
     conexion.query(sql, [id], function (error, propiedad) {
         if (error) {
+            console.log(error);
             return res.status(403).json({
                 error: 'error al cargar la propiedad'
             })
         }
         conexion.query(sql2, [id], function (error, urls) {
             if (error) {
+                console.log(error)
                 return res.status(403).json({
+                
                     error: 'erro al cargar las urls'
                 })
             }
             conexion.query(sql3, [id], function (error, reseñas) {
                 if (error) {
+                    console.log(error);
                     return res.status(401).json({
                         error: 'error al cargar las reseñas'
                     })
                 }
+                
                 res.json({
                     propiedad,
                     urls,
@@ -134,7 +139,8 @@ router.get('/', function (req, res, next) {
                 }
                 res.json({
                     ciudades,
-                    tipo_propiedades
+                    tipo_propiedades,
+                    servicios
                 })
             })
         })
@@ -155,10 +161,12 @@ router.post('/', upload, (req, res) => {
     const usuario_id = verificacionToken?.data?.usuario_id
 
 
-    const { direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion } = req.body;
-    const servicios = req.body.servicios;
-    const serviciosSeleccionados = Array.isArray(servicios) ? servicios : [];
-    const serviciosString = serviciosSeleccionados.join('.');
+    const {serviciosSeleccionados, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion } = req.body;
+    console.log(serviciosSeleccionados);
+    const servicios = JSON.parse("["+serviciosSeleccionados+"]")
+    //const serviciosSeleccionados = req.params;
+    // const servicios = Array.isArray(serviciosSeleccionados) ? serviciosSeleccionados : [];
+    //const serviciosString = serviciosSeleccionados.join('.');
 
     const sqlPropiedad = `INSERT INTO propiedades 
                          (propietario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion) 
@@ -173,9 +181,10 @@ router.post('/', upload, (req, res) => {
         const sqlServicioPropiedad = "INSERT INTO propiedades_servicios (servicio_id, propiedad_id) VALUES (?, ?);"
 
         const propiedadId = result.insertId;
+        console.log(servicios)
 
-        if (serviciosSeleccionados.length > 0) {
-            const ingresarServicios = serviciosSeleccionados.map(servicio_id => {
+        if (servicios.length > 0) {
+            const ingresarServicios = servicios.map(servicio_id => {
                 return new Promise((resolve, reject) => {
                     conexion.query(sqlServicioPropiedad, [servicio_id, propiedadId], function (error, result) {
                         if (error) {
@@ -188,16 +197,16 @@ router.post('/', upload, (req, res) => {
             })
 
             Promise.all(ingresarServicios)
-            .then(results => {
+            // .then(results => {
                
-                console.log("Todos los servicios fueron insertados correctamente:", results);
-                res.status(200).json({ message: "Servicios insertados correctamente" });
-            })
-            .catch(error => {
+            //     console.log("Todos los servicios fueron insertados correctamente:", results);
+            //     res.status(200).json({ message: "Servicios insertados correctamente" });
+            // })
+            // .catch(error => {
             
-                console.error("Error al insertar servicios:", error);
-                res.status(500).json({ error: "Error al insertar servicios" });
-            });
+            //     console.error("Error al insertar servicios:", error);
+            //     res.status(500).json({ error: "Error al insertar servicios" });
+            // });
 
         }
 
@@ -245,7 +254,7 @@ router.post('/', upload, (req, res) => {
 router.put('/', (req, res) => {
     const { propiedad_id } = req.query;
     const token = req.headers.authorization;
-    if (!token || !propiedad_id) {
+    if (!token) {
         console.error('acceso denegado');
         return res.status(403).json({
             status: 'error',
@@ -356,7 +365,7 @@ router.delete('/', (req, res) => {
 
 });
 
-router.post('/propiedad/reseña', function (req, res, next) {
+router.post('/propiedad/resena', function (req, res, next) {
     const { propiedad_id } = req.query;
     const token = req.headers.authorization;
     const { comentario, puntuacion } = req.body;
@@ -374,6 +383,7 @@ router.post('/propiedad/reseña', function (req, res, next) {
 
     conexion.query(sql, [usuario_id, propiedad_id, comentario, puntuacion], function (error, result) {
         if (error) {
+            console.log(error);
             return res.status(500).json({
                 error: 'error al crear la reseña'
             })
