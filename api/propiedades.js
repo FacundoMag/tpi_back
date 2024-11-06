@@ -250,119 +250,143 @@ router.post('/', upload, (req, res) => {
 });
 
 
-
+// Ruta para editar una propiedad
 router.put('/', (req, res) => {
     const { propiedad_id } = req.query;
-    const token = req.headers.authorization;
-    if (!token) {
-        console.error('acceso denegado');
-        return res.status(403).json({
+    console.log(req.body)
+    
+    if (!propiedad_id) {
+        console.error('Propiedad ID no proporcionado');
+        return res.status(400).json({
             status: 'error',
-            error: 'acceso denegado'
-        })
+            error: 'Propiedad ID no proporcionado'
+        });
     }
 
-    const verificacionToken = verificarToken(token, TOKEN_SECRET);
-    if (verificacionToken?.data?.usuario_id === undefined || verificacionToken?.data?.usuario_id === null) {
-        console.error('token invalido');
-        return res.status(401).json({
+    // Validar que todos los campos necesarios estén presentes
+    const { num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion } = req.body;
+
+    if ([num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion].some(field => field === undefined || field === null)) {
+        console.error('Faltan campos obligatorios');
+        return res.status(400).json({
             status: 'error',
-            error: 'token invalido'
-        })
+            error: 'Todos los campos son obligatorios'
+        });
     }
 
-    const user_id = verificacionToken?.data?.usuario_id;
-    const sql = "SELECT propietario_id FROM propiedades WHERE id = ?";
-    conexion.query(sql, [propiedad_id], function (error, result) {
-
+    // Realizar la consulta para obtener el propietario de la propiedad
+    const sql = "SELECT propietario_id FROM propiedades WHERE ID = ?";
+    conexion.query(sql, [propiedad_id], (error, result) => {
         if (error) {
-            console.error(error);
+            console.error('Error en la base de datos:', error);
             return res.status(500).json({
                 status: 'error',
                 error: 'Error en la base de datos'
             });
         }
 
-        if (result.length === 0 || result[0].registra_usuario_id !== user_id) {
-            console.error('no tienes permisos de modiicar esta propiedad');
-            return res.status(401).json({
+        if (result.length === 0) {
+            console.error('Propiedad no encontrada');
+            return res.status(404).json({
                 status: 'error',
-                error: 'no tienes permisos de modificar esta propiedad'
-            })
+                error: 'Propiedad no encontrada'
+            });
         }
 
-        const { num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion } = req.body;
-        const sql2 = "UPDATE propiedades SET  num_habitaciones = ?, num_banos = ?, capacidad = ?, tamano_m2 = ?, precio_renta = ?, tipo_id = ?, descripcion = ? WHERE id = ?";
-        conexion.query(sql2, [num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion, propiedad_id, user_id], function (err, result) {
-            if (err) {
-                console.error(err);
-                return res.status(403).json({
+        const user_id = result[0].propietario_id;
+        console.log('ID del usuario autenticado:', req.user_id, 'ID del propietario:', user_id);
+
+        if (req.user_id !== user_id) {
+            console.error('No tienes permisos para modificar esta propiedad');
+            return res.status(403).json({
+                status: 'error',
+                error: 'No tienes permisos para modificar esta propiedad'
+            });
+        }
+
+        // Si todos los campos están presentes, proceder con la actualización
+        const updateSql = "UPDATE propiedades SET num_habitaciones = ?, num_banos = ?, capacidad = ?, tamano_m2 = ?, precio_renta = ?, tipo_id = ?, descripcion = ? WHERE ID = ?";
+        const updateValues = [num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion, propiedad_id];
+        
+        conexion.query(updateSql, updateValues, (updateError, updateResult) => {
+            if (updateError) {
+                console.error('Error al actualizar la propiedad:', updateError);
+                return res.status(500).json({
                     status: 'error',
-                    error: 'error al actualizar los datos'
-                })
+                    error: 'Error al actualizar la propiedad'
+                });
             }
 
-            return res.json({
-                status: 'ok',
-                message: 'datos actualizados correctamente'
-            })
-        })
-    })
-
+            res.json({
+                status: 'success',
+                message: 'Propiedad actualizada correctamente'
+            });
+        });
+    });
 });
-
 
 
 router.delete('/', (req, res) => {
     const { id } = req.query;
+
+    if (!id) {
+        return res.status(400).json({ error: 'ID de propiedad no proporcionado' });
+    }
+
     const imagenSQL = "SELECT url FROM imagenes WHERE propiedad_id = ?";
     const sql = 'DELETE FROM propiedades WHERE id = ?';
     const sql2 = "DELETE FROM imagenes WHERE propiedad_id = ?";
 
+    // Obtener las imágenes asociadas a la propiedad antes de eliminarla
     conexion.query(imagenSQL, [id], function (error, imagenes) {
         if (error) {
+            console.error('Error al obtener las imágenes:', error);
             return res.status(500).json({
-                error: error.message
-            })
+                error: 'Error al obtener las imágenes'
+            });
         }
 
+        // Si existen imágenes, proceder a eliminarlas del sistema de archivos
         if (imagenes.length > 0) {
             imagenes.forEach(imagen => {
-
                 const imagePath = path.join(__dirname, '..', 'uploads', imagen.url);
-                console.log(imagePath);
-
                 console.log(`Intentando eliminar imagen en: ${imagePath}`);
 
                 fs.unlink(imagePath, (err) => {
                     if (err) {
                         console.error(`Error al eliminar la imagen: ${imagePath} - Detalle: ${err.message}`);
+                    } else {
+                        console.log(`Imagen eliminada: ${imagePath}`);
                     }
-                    else {
-                        console.log('imagen eliminada: ${imagePath}');
-                    }
-                })
-            })
+                });
+            });
         }
 
+        // Eliminar las imágenes de la base de datos
         conexion.query(sql2, [id], (err, result) => {
             if (err) {
-                return res.status(500).json({ error: err.message });
+                console.error('Error al eliminar las imágenes de la base de datos:', err);
+                return res.status(500).json({ error: 'Error al eliminar las imágenes de la base de datos' });
             }
-            if (result.affectedRows === 0) {
-                return res.status(404).json({ message: err.message });
-            }
+
+            // Eliminar la propiedad de la base de datos
             conexion.query(sql, [id], function (error, result) {
                 if (error) {
-                    return res.status(400).json({
-                        error: 'propiedad no encontrada'
-                    })
+                    console.error('Error al eliminar la propiedad:', error);
+                    return res.status(500).json({
+                        error: 'Error al eliminar la propiedad'
+                    });
                 }
-                res.json({ message: 'Propiedad eliminada con éxito' });
-            })
-        });
-    })
 
+                if (result.affectedRows === 0) {
+                    return res.status(404).json({ message: 'Propiedad no encontrada' });
+                }
+
+                // Respuesta exitosa
+                res.json({ message: 'Propiedad eliminada con éxito' });
+            });
+        });
+    });
 });
 
 router.post('/propiedad/resena', function (req, res, next) {
