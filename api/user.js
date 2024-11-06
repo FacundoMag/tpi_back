@@ -42,20 +42,15 @@ router.post('/registrarse', function(req, res, next){
            res.json({
             status: 'ok',
             usuarios_id
-           })
-           
-        })
-        
+           }) 
+        })  
     })
-
     .catch((error)=>{
         console.error(error);
         res.json({
             status: 'error', error 
         })
     })
-
-    
 })
 
 router.post('/inicio_sesion', function(req, res, next){
@@ -88,9 +83,8 @@ router.post('/inicio_sesion', function(req, res, next){
 
 
 router.put('/edit', function(req, res, next){
-    const {id} = req.query;
     const token = req.headers.authorization;
-    if(!token || !id){
+    if(!token){
         console.error('acceso denegado');
         res.status(403).res.json({
             status: 'error', error: 'acceso denegado'
@@ -110,16 +104,10 @@ router.put('/edit', function(req, res, next){
 
      const usuarioIdToken = verificacionToken?.data?.usuario_id;
 
-        if(usuarioIdToken != id){
-            return res.status(403).json({
-                status: 'error',
-                error: 'no tienes permisos para modificar este perfil'
-            })
-        }
         const {nombre, apellido, telefono, correo} = req.body;
     
         const sql = "UPDATE usuarios SET nombre = ?, apellido = ?, telefono = ?, correo = ? WHERE id = ?";
-        conexion.query(sql, [nombre, apellido, telefono, correo, id], function(error, result){
+        conexion.query(sql, [nombre, apellido, telefono, correo, usuarioIdToken], function(error, result){
             if(error){
                 console.error(error);
                 return res.status(500).send('ocurrio un error')
