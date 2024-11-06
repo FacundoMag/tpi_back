@@ -34,14 +34,17 @@ router.use('/propiedades', function(req, res, next) {
 
     const verificacionToken = verificarToken(token, TOKEN_SECRET);
     if (verificacionToken?.data?.usuario_id !== undefined) {
+        req.user_id = verificacionToken.data.usuario_id;  // Asigna usuario_id a req.user_id
+        console.log('ID del usuario autenticado:', req.user_id);  // Muestra el ID para verificar
         next();
     } else {
-        res.json({
+        res.status(403).json({
             status: 'error',
             error: 'token incorrecto'
         });
     }
 });
+
 
 
 
