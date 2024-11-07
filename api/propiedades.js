@@ -35,49 +35,54 @@ router.get('/', function (req, res, next) {
 })
 
 router.get('/buscador', function (req, res, next) {
-    const { precio, baños, habitaciones, capacidad, ciudad, tipo_propiedad } = req.query;
-    let sql = "SELECT ciudades.nombre AS ciudades, tipo_de_propiedad.nombre AS tipo_de_propiedad, imagenes.url, propiedades.precio_renta, propiedades.capacidad, propiedades.direccion, propiedades.num_habitaciones, propiedades.num_banos FROM propiedades JOIN imagenes ON propiedades.id = imagenes.propiedad_id JOIN ciudades ON propiedades.ciudad_id = ciudades.id JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id WHERE";
+    const { ciudad_id, tipo_id } = req.query;
+    
+    let sql = `
+    SELECT 
+        ciudades.nombre AS ciudades, 
+        tipo_de_propiedad.nombre AS tipo_de_propiedad, 
+        imagenes.url, 
+        propiedades.precio_renta, 
+        propiedades.capacidad, 
+        propiedades.direccion, 
+        propiedades.num_habitaciones, 
+        propiedades.num_banos 
+    FROM 
+        propiedades 
+    JOIN 
+        imagenes ON propiedades.id = imagenes.propiedad_id 
+    JOIN 
+        ciudades ON propiedades.ciudad_id = ciudades.id 
+    JOIN 
+        tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id 
+    WHERE 
+    `;
 
     const filtros = [];
-    if (precio) {
-        sql += "propiedades.precio_renta <= ?";
-        filtros.push(precio);
+
+    if (ciudad_id) {
+        sql += " propiedades.ciudad_id = ?";
+        filtros.push(ciudad_id);
     }
-    if (baños) {
-        sql += " propiedades.num_banos = ?";
-        filtros.push(baños);
-    }
-    if (habitaciones) {
-        sql += " propiedades.num_habitaciones = ?";
-        filtros.push(habitaciones);
-    }
-    if (capacidad) {
-        sql += " propiedades.capacidad = ?";
-        filtros.push(capacidad);
-    }
-    if (ciudad) {
-        sql += " ciudades.nombre LIKE ?";
-        filtros.push(`%${ciudad}%`);
-    }
-    if (tipo_propiedad) {
-        sql += " tipo_de_propiedad.nombre LIKE ?";
-        filtros.push(`%${tipo_propiedad}%`);
+    if (tipo_id) {
+        sql += " propiedades.tipo_id = ?";
+        filtros.push(tipo_id);
     }
 
-    console.log(filtros)
-
-    conexion.query(sql, [filtros], function (error, result) {
+    conexion.query(sql, filtros, function (error, result) {
         if (error) {
-            console.log(error)
+            console.log(error);
             return res.status(500).json({
-                error: "error al realizar la busqueda"
-            })
+                error: "Error al realizar la búsqueda"
+            });
         }
         res.json({
             result
-        })
-    })
-})
+        });
+    });
+});
+
+
 
 router.get('/propiedad', (req, res) => {
     const { id } = req.query;
