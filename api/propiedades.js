@@ -81,7 +81,7 @@ router.get('/buscador', function (req, res, next) {
 
 router.get('/propiedad', (req, res) => {
     const { id } = req.query;
-    const sql = "SELECT  propiedades.direccion, ciudades.nombre AS ciudades, propiedades.num_habitaciones, propiedades.num_banos, propiedades.capacidad, propiedades.tamano_m2, propiedades.precio_renta, tipo_de_propiedad.nombre AS tipo_de_propiedad, propiedades.descripcion FROM propiedades JOIN ciudades ON propiedades.ciudad_id = ciudades.id JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id  WHERE propiedades.id = ?";
+    const sql = "SELECT usuarios.telefono AS telefono_propietario, propiedades.direccion, ciudades.nombre AS ciudades, propiedades.num_habitaciones, propiedades.num_banos, propiedades.capacidad, propiedades.tamano_m2, propiedades.precio_renta, tipo_de_propiedad.nombre AS tipo_de_propiedad, propiedades.descripcion FROM propiedades JOIN ciudades ON propiedades.ciudad_id = ciudades.id JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id JOIN usuarios ON usuarios.id = propiedades.propietario_id WHERE propiedades.id = ?";
     const sql2 = "SELECT url FROM imagenes WHERE propiedad_id = ?";
     const sql3 = "SELECT usuarios.nombre AS usuarios, usuarios.apellido AS usuarios, resenas.comentario, resenas.valoracion FROM resenas JOIN usuarios ON resenas.usuario_id = usuarios.id WHERE resenas.propiedad_id = ?";
     const sql4 = "SELECT servicios.servicio AS servicios FROM propiedades_servicios JOIN servicios ON propiedades_servicios.servicio_id = servicios.id WHERE propiedades_servicios.propiedad_id = ? ";
