@@ -119,6 +119,24 @@ router.put('/edit', function(req, res, next){
         })
     })
 
+    router.get('/mi_perfil', function(req, res, next){
+        const token = req.headers.authorization;
+        const verificacionToken = verificarToken(token, TOKEN_SECRET);
+        const id = verificacionToken?.data?.usuario_id;
+
+        const sql = "SELECT nombre, apellido, telefono, correo FROM usuarios WHERE id = ?";
+        conexion.query(sql, [id], function(error, result){
+            if(error){
+                return res.status(400).json({
+                    error: 'error al traer los datos'
+                })
+            }
+            res.json({
+                result
+            })
+        })
+    })
+
     router.post('/favoritos', (req, res) => {
         const { id, propiedad_id } = req.body; // `id` es el usuario que marca la propiedad como favorita
         const sql = 'INSERT INTO favoritos (usuario_id, propiedad_id) VALUES (?, ?)';
