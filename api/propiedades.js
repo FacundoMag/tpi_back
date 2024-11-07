@@ -56,17 +56,16 @@ router.get('/buscador', function (req, res, next) {
     JOIN 
         tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id 
     WHERE 
-        1 = 1
     `;
 
     const filtros = [];
 
     if (ciudad_id) {
-        sql += " AND propiedades.ciudad_id = ?";
+        sql += " propiedades.ciudad_id = ?";
         filtros.push(ciudad_id);
     }
     if (tipo_id) {
-        sql += " AND propiedades.tipo_id = ?";
+        sql += " propiedades.tipo_id = ?";
         filtros.push(tipo_id);
     }
 
