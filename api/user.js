@@ -72,7 +72,7 @@ router.post('/inicio_sesion', function(req, res, next) {
                     res.json({
                         status: 'ok',
                         token, 
-                        userId: result[0].id // Incluye el userId en la respuesta
+                       
                     });
                 } else {
                     console.error("correo/contraseña incorrecto");
