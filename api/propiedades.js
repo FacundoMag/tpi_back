@@ -22,52 +22,46 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage }).array('imagen', 10);
 
 router.get('/', function (req, res, next) {
-    const sql = "SELECT propiedades.id, imagenes.url AS imagenes, propiedades.precio_renta, propiedades.direccion, ciudades.nombre AS ciudad, propiedades.num_habitaciones, propiedades.num_banos, tipo_de_propiedad.nombre AS tipo FROM propiedades JOIN imagenes ON propiedades.id = imagenes.propiedad_id JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id JOIN ciudades ON propiedades.ciudad_id = ciudades.id";
-
+    const sql = "SELECT propiedades.id, GROUP_CONCAT(imagenes.url) AS imagenes, propiedades.precio_renta, propiedades.direccion, ciudades.nombre AS ciudad, propiedades.num_habitaciones, propiedades.num_banos, tipo_de_propiedad.nombre AS tipo FROM propiedades JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id JOIN ciudades ON propiedades.ciudad_id = ciudades.id JOIN imagenes ON propiedades.id = imagenes.propiedad_id GROUP BY propiedades.id";
+  
     conexion.query(sql, function (err, propiedadesConimg) {
         if (err) {
             return res.status(500).json({ error: err.message })
         }
-        res.json({
-            propiedadesConimg
-        })
+       propiedadesConimg = propiedadesConimg.map(propiedad => ({
+        ...propiedad,
+        imagenes: propiedad.imagenes ? propiedad.imagenes.split(',') : []
+       }))
+       res.json(
+        propiedadesConimg
+       )
     })
 })
 
 router.get('/buscador', function (req, res, next) {
     const { ciudad_id, tipo_id } = req.query;
     
-    let sql = `
-    SELECT 
-        ciudades.nombre AS ciudad, 
-        propiedades.direccion,
-        imagenes.url, 
-        propiedades.precio_renta, 
-        propiedades.capacidad, 
-        propiedades.num_habitaciones, 
-        propiedades.num_banos 
-        tipo_de_propiedad.nombre AS tipo, 
-    FROM 
-        propiedades 
-    JOIN 
-        imagenes ON propiedades.id = imagenes.propiedad_id 
-    JOIN 
-        ciudades ON propiedades.ciudad_id = ciudades.id 
-    JOIN 
-        tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id 
-    WHERE 
-        `;
+    let sql = "SELECT ciudades.nombre AS ciudades, tipo_de_propiedad.nombre AS tipo_de_propiedad, GROUP_CONCAT(imagenes.url) AS imagenes, propiedades.id, propiedades.precio_renta, propiedades.capacidad, propiedades.direccion, propiedades.num_habitaciones, propiedades.num_banos FROM propiedades JOIN ciudades ON propiedades.ciudad_id = ciudades.id JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id JOIN imagenes ON propiedades.id = imagenes.propiedad_id";
+    
 
     const filtros = [];
+    const condiciones = [];
 
     if (ciudad_id) {
-        sql += " propiedades.ciudad_id = ?";
+        condiciones.push("propiedades.ciudad_id = ?");
         filtros.push(ciudad_id);
     }
+    
     if (tipo_id) {
-        sql += " AND propiedades.tipo_id = ?";
+        sql += " propiedades.tipo_id = ?";
         filtros.push(tipo_id);
     }
+    
+    if (condiciones.length > 0) {
+        sql += " WHERE " + condiciones.join(" AND ");
+    }
+
+    sql += " GROUP BY propiedades.id";
 
     conexion.query(sql, filtros, function (error, propiedadesConimg) {
         if (error) {
