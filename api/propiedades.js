@@ -39,14 +39,14 @@ router.get('/buscador', function (req, res, next) {
     
     let sql = `
     SELECT 
-        ciudades.nombre AS ciudades, 
-        tipo_de_propiedad.nombre AS tipo_de_propiedad, 
+        ciudades.nombre AS ciudad, 
+        propiedades.direccion,
         imagenes.url, 
         propiedades.precio_renta, 
         propiedades.capacidad, 
-        propiedades.direccion, 
         propiedades.num_habitaciones, 
         propiedades.num_banos 
+        tipo_de_propiedad.nombre AS tipo, 
     FROM 
         propiedades 
     JOIN 
@@ -56,7 +56,7 @@ router.get('/buscador', function (req, res, next) {
     JOIN 
         tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id 
     WHERE 
-    `;
+        `;
 
     const filtros = [];
 
@@ -65,11 +65,11 @@ router.get('/buscador', function (req, res, next) {
         filtros.push(ciudad_id);
     }
     if (tipo_id) {
-        sql += " propiedades.tipo_id = ?";
+        sql += " AND propiedades.tipo_id = ?";
         filtros.push(tipo_id);
     }
 
-    conexion.query(sql, filtros, function (error, result) {
+    conexion.query(sql, filtros, function (error, propiedadesConimg) {
         if (error) {
             console.log(error);
             return res.status(500).json({
@@ -77,7 +77,7 @@ router.get('/buscador', function (req, res, next) {
             });
         }
         res.json({
-            result
+            propiedadesConimg
         });
     });
 });
