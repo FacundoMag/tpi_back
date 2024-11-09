@@ -40,9 +40,15 @@ router.get('/', function (req, res, next) {
 
 router.get('/buscador', function (req, res, next) {
     const { ciudad_id, tipo_id } = req.query;
-    
-    let sql = "SELECT ciudades.nombre AS ciudades, tipo_de_propiedad.nombre AS tipo_de_propiedad, GROUP_CONCAT(imagenes.url) AS imagenes, propiedades.id, propiedades.precio_renta, propiedades.capacidad, propiedades.direccion, propiedades.num_habitaciones, propiedades.num_banos FROM propiedades JOIN ciudades ON propiedades.ciudad_id = ciudades.id JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id JOIN imagenes ON propiedades.id = imagenes.propiedad_id";
-    
+
+    let sql = `SELECT ciudades.nombre AS ciudad, tipo_de_propiedad.nombre AS tipo, 
+                GROUP_CONCAT(imagenes.url) AS imagenes, propiedades.id, propiedades.precio_renta, 
+                propiedades.capacidad, propiedades.direccion, propiedades.num_habitaciones, 
+                propiedades.num_banos 
+                FROM propiedades 
+                JOIN ciudades ON propiedades.ciudad_id = ciudades.id 
+                JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id 
+                JOIN imagenes ON propiedades.id = imagenes.propiedad_id`;
 
     const filtros = [];
     const condiciones = [];
@@ -51,12 +57,12 @@ router.get('/buscador', function (req, res, next) {
         condiciones.push("propiedades.ciudad_id = ?");
         filtros.push(ciudad_id);
     }
-    
+
     if (tipo_id) {
-        sql += " propiedades.tipo_id = ?";
+        condiciones.push("propiedades.tipo_id = ?");
         filtros.push(tipo_id);
     }
-    
+
     if (condiciones.length > 0) {
         sql += " WHERE " + condiciones.join(" AND ");
     }
@@ -75,6 +81,7 @@ router.get('/buscador', function (req, res, next) {
         });
     });
 });
+
 
 
 
