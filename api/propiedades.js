@@ -22,68 +22,80 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage }).array('imagen', 10);
 
 router.get('/', function (req, res, next) {
-    const sql = "SELECT propiedades.id, imagenes.url AS imagenes, propiedades.precio_renta, propiedades.direccion, propiedades.num_habitaciones, propiedades.num_banos FROM propiedades JOIN imagenes ON propiedades.id = imagenes.propiedad_id  ";
-
+    const sql = "SELECT propiedades.id, GROUP_CONCAT(imagenes.url) AS imagenes, propiedades.precio_renta, propiedades.direccion, ciudades.nombre AS ciudad, propiedades.num_habitaciones, propiedades.num_banos, tipo_de_propiedad.nombre AS tipo FROM propiedades JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id JOIN ciudades ON propiedades.ciudad_id = ciudades.id JOIN imagenes ON propiedades.id = imagenes.propiedad_id GROUP BY propiedades.id";
+  
     conexion.query(sql, function (err, propiedadesConimg) {
         if (err) {
             return res.status(500).json({ error: err.message })
         }
-        res.json({
-            propiedadesConimg
-        })
+       propiedadesConimg = propiedadesConimg.map(propiedad => ({
+        ...propiedad,
+        imagenes: propiedad.imagenes ? propiedad.imagenes.split(',') : []
+       }))
+       res.json(
+        propiedadesConimg
+       )
     })
 })
 
 router.get('/buscador', function (req, res, next) {
-    const { precio, baños, habitaciones, capacidad, ciudad, tipo_propiedad } = req.query;
-    let sql = "SELECT ciudades.nombre AS ciudades, tipo_de_propiedad.nombre AS tipo_de_propiedad, imagenes.url, propiedades.precio_renta, propiedades.capacidad, propiedades.direccion, propiedades.num_habitaciones, propiedades.num_banos FROM propiedades JOIN imagenes ON propiedades.id = imagenes.propiedad_id JOIN ciudades ON propiedades.ciudad_id = ciudades.id JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id WHERE";
+    const { ciudad_id, tipo_id } = req.query;
+
+    let sql = `SELECT ciudades.nombre AS ciudad, tipo_de_propiedad.nombre AS tipo, 
+                GROUP_CONCAT(imagenes.url) AS imagenes, propiedades.id, propiedades.precio_renta, 
+                propiedades.capacidad, propiedades.direccion, propiedades.num_habitaciones, 
+                propiedades.num_banos 
+                FROM propiedades 
+                JOIN ciudades ON propiedades.ciudad_id = ciudades.id 
+                JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id 
+                JOIN imagenes ON propiedades.id = imagenes.propiedad_id`;
 
     const filtros = [];
-    if (precio) {
-        sql += "propiedades.precio_renta <= ?";
-        filtros.push(precio);
-    }
-    if (baños) {
-        sql += " propiedades.num_banos = ?";
-        filtros.push(baños);
-    }
-    if (habitaciones) {
-        sql += " propiedades.num_habitaciones = ?";
-        filtros.push(habitaciones);
-    }
-    if (capacidad) {
-        sql += " propiedades.capacidad = ?";
-        filtros.push(capacidad);
-    }
-    if (ciudad) {
-        sql += " ciudades.nombre LIKE ?";
-        filtros.push(`%${ciudad}%`);
-    }
-    if (tipo_propiedad) {
-        sql += " tipo_de_propiedad.nombre LIKE ?";
-        filtros.push(`%${tipo_propiedad}%`);
+    const condiciones = [];
+
+    if (ciudad_id) {
+        condiciones.push("propiedades.ciudad_id = ?");
+        filtros.push(ciudad_id);
     }
 
-    console.log(filtros)
+    if (tipo_id) {
+        condiciones.push("propiedades.tipo_id = ?");
+        filtros.push(tipo_id);
+    }
 
-    conexion.query(sql, [filtros], function (error, result) {
+    if (condiciones.length > 0) {
+        sql += " WHERE " + condiciones.join(" AND ");
+    }
+
+    sql += " GROUP BY propiedades.id";
+
+    conexion.query(sql, filtros, function (error, propiedadesConimg) {
         if (error) {
-            console.log(error)
+            console.log(error);
             return res.status(500).json({
-                error: "error al realizar la busqueda"
-            })
+                error: "Error al realizar la búsqueda"
+            });
         }
-        res.json({
-            result
-        })
-    })
-})
+        propiedadesConimg = propiedadesConimg.map(propiedad => ({
+            ...propiedad,
+            imagenes: propiedad.imagenes ? propiedad.imagenes.split(',') : []
+           }))
+           res.json(
+            propiedadesConimg
+           ) 
+       
+    });
+});
+
+
+
 
 router.get('/propiedad', (req, res) => {
     const { id } = req.query;
-    const sql = "SELECT  propiedades.direccion, ciudades.nombre AS ciudades, propiedades.num_habitaciones, propiedades.num_banos, propiedades.capacidad, propiedades.tamano_m2, propiedades.precio_renta, tipo_de_propiedad.nombre AS tipo_de_propiedad, propiedades.descripcion FROM propiedades JOIN ciudades ON propiedades.ciudad_id = ciudades.id JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id  WHERE propiedades.id = ?";
+    const sql = "SELECT usuarios.telefono AS telefono_propietario, propiedades.direccion, ciudades.nombre AS ciudades, propiedades.num_habitaciones, propiedades.num_banos, propiedades.capacidad, propiedades.tamano_m2, propiedades.precio_renta, tipo_de_propiedad.nombre AS tipo_de_propiedad, propiedades.descripcion FROM propiedades JOIN ciudades ON propiedades.ciudad_id = ciudades.id JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id JOIN usuarios ON usuarios.id = propiedades.propietario_id WHERE propiedades.id = ?";
     const sql2 = "SELECT url FROM imagenes WHERE propiedad_id = ?";
     const sql3 = "SELECT usuarios.nombre AS usuarios, usuarios.apellido AS usuarios, resenas.comentario, resenas.valoracion FROM resenas JOIN usuarios ON resenas.usuario_id = usuarios.id WHERE resenas.propiedad_id = ?";
+    const sql4 = "SELECT servicios.servicio AS servicios FROM propiedades_servicios JOIN servicios ON propiedades_servicios.servicio_id = servicios.id WHERE propiedades_servicios.propiedad_id = ? ";
     conexion.query(sql, [id], function (error, propiedad) {
         if (error) {
             console.log(error);
@@ -106,12 +118,21 @@ router.get('/propiedad', (req, res) => {
                         error: 'error al cargar las reseñas'
                     })
                 }
-                
-                res.json({
-                    propiedad,
-                    urls,
-                    reseñas
+                conexion.query(sql4, [id], function(error, servicios){
+                    if(error){
+                       console.log(error);
+                       return res.status(401).json({
+                        error: 'error al cargar los servicios'
+                       })
+                    }
+                    res.json({
+                        propiedad,
+                        urls,
+                        servicios,
+                        reseñas
+                    })
                 })
+                
             })
         })
     })
@@ -218,8 +239,6 @@ router.post('/', upload, (req, res) => {
             }));
 
             const sqlImagen = `INSERT INTO imagenes (propiedad_id, url) VALUES (?, ?)`;
-
-
 
             const promises = imagenesSubidas.map(imagen => {
                 return new Promise((resolve, reject) => {
