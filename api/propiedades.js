@@ -76,9 +76,14 @@ router.get('/buscador', function (req, res, next) {
                 error: "Error al realizar la búsqueda"
             });
         }
-        res.json({
+        propiedadesConimg = propiedadesConimg.map(propiedad => ({
+            ...propiedad,
+            imagenes: propiedad.imagenes ? propiedad.imagenes.split(',') : []
+           }))
+           res.json(
             propiedadesConimg
-        });
+           ) 
+       
     });
 });
 
