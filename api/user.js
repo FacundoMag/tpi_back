@@ -53,33 +53,35 @@ router.post('/registrarse', function(req, res, next){
     })
 })
 
-router.post('/inicio_sesion', function(req, res, next){
+router.post('/inicio_sesion', function(req, res, next) {
     const { correo, contraseña } = req.body;
     const sql = "SELECT id, contraseña FROM usuarios WHERE correo = ?";
-    conexion.query(sql, [correo], function(error, result){
-        if(error){
-            console.log(error)
-            return res.json({status: 'error', error})
-        } else{
-            if(result.length === 0){
+
+    conexion.query(sql, [correo], function(error, result) {
+        if (error) {
+            console.log(error);
+            return res.json({ status: 'error', error });
+        } else {
+            if (result.length === 0) {
                 console.error("El correo no existe");
-                return res.json({status: 'error', error: "El correo no existe"})
-            } else{
-                if(verificarPass(contraseña, result[0].contraseña)){
-                    const token = generarToken(TOKEN_SECRET, 6, {usuario_id: result[0].id, correo: correo})
+                return res.json({ status: 'error', error: "El correo no existe" });
+            } else {
+                if (verificarPass(contraseña, result[0].contraseña)) {
+                    const token = generarToken(TOKEN_SECRET, 6, { usuario_id: result[0].id, correo: correo });
                     console.log(token);
                     res.json({
                         status: 'ok',
-                        token
-                    })
-                } else{
+                        token, 
+                       
+                    });
+                } else {
                     console.error("correo/contraseña incorrecto");
-                    return res.json({status: 'error', error: "correo/contraseña incorrecto"})
+                    return res.json({ status: 'error', error: "correo/contraseña incorrecto" });
                 }
             }
         }
-    })
-})
+    });
+});
 
 
 router.put('/edit', function(req, res, next){
@@ -115,6 +117,24 @@ router.put('/edit', function(req, res, next){
             res.json({
                 status: 'ok',
                 message: 'datos actualizados correctamente'
+            })
+        })
+    })
+
+    router.get('/mi_perfil', function(req, res, next){
+        const token = req.headers.authorization;
+        const verificacionToken = verificarToken(token, TOKEN_SECRET);
+        const id = verificacionToken?.data?.usuario_id;
+
+        const sql = "SELECT nombre, apellido, telefono, correo FROM usuarios WHERE id = ?";
+        conexion.query(sql, [id], function(error, result){
+            if(error){
+                return res.status(400).json({
+                    error: 'error al traer los datos'
+                })
+            }
+            res.json({
+                result
             })
         })
     })

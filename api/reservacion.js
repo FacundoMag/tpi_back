@@ -59,15 +59,13 @@ router.post('/', (req, res) => {
                     )
                 ]);
             })
-            .then(() =>  res.json({ message: 'Reservación creada y correos enviados.' }))
+            .then(() => res.json({ message: 'Reservación creada y correos enviados.' }))
             .catch(error => {
                 console.error('Error al enviar los correos:', error);
                 res.status(500).json({ error: 'Reservación creada, pero ocurrió un error al enviar los correos.' });
             });
     });
 });
-
-
 
 // Actualizar una reservación por ID
 router.put('/', (req, res) => {
@@ -107,7 +105,6 @@ router.put('/', (req, res) => {
     });
 });
 
-
 // Eliminar una reservación por ID
 router.delete('/', (req, res) => {
     const { id } = req.query;
@@ -117,10 +114,36 @@ router.delete('/', (req, res) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
-        // Respuesta exitosa al cliente
-        res.json({ message: 'Reservación eliminada con éxito' });
+
+        // Obtener el correo del usuario antes de eliminar la reservación
+        const selectEmailSql = 'SELECT email FROM usuarios WHERE id = (SELECT usuario_id FROM reservaciones WHERE id = ?)';
+        conexion.query(selectEmailSql, [id], (err, results) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            if (results.length === 0) {
+                return res.status(404).json({ message: 'Reservación no encontrada' });
+            }
+
+            const userEmail = results[0].email;
+
+            // Enviar correo al usuario
+            enviarCorreo(userEmail, 'Reservación Eliminada', 'Tu reservación ha sido eliminada.')
+                .then(() => {
+                    // Eliminar la reservación
+                    conexion.query(sql, [id], (err, result) => {
+                        if (err) {
+                            return res.status(500).json({ error: err.message });
+                        }
+                        res.json({ message: 'Reservación eliminada y correo enviado con éxito' });
+                    });
+                })
+                .catch(error => {
+                    console.error('Error al enviar el correo:', error);
+                    res.status(500).json({ error: 'Ocurrió un error al enviar el correo.' });
+                });
+        });
     });
 });
-
 
 module.exports = router;
