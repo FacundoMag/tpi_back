@@ -141,6 +141,7 @@ router.put('/edit', function(req, res, next){
 
     router.post('/favoritos', (req, res) => {
         const token = req.headers.authorization;
+        const {propiedad_id} = req.query;
         const verificacionToken = verificarToken(token, TOKEN_SECRET);
         const id = verificacionToken?.data?.usuario_id;
         const sql = 'INSERT INTO favoritos (usuario_id, propiedad_id) VALUES (?, ?)';
@@ -155,7 +156,10 @@ router.put('/edit', function(req, res, next){
     
     
     router.delete('/favoritos', (req, res) => {
-        const { id, propiedad_id } = req.body;
+        const token = req.headers.authorization;
+        const verificacionToken = verificarToken(token, TOKEN_SECRET);
+        const id = verificacionToken?.data?.usuario_id;
+        const {propiedad_id} = req.query;
         const sql = 'DELETE FROM favoritos WHERE usuario_id = ? AND propiedad_id = ?';
         conexion.query(sql, [id, propiedad_id], (error, result) => {
             if (error) {
