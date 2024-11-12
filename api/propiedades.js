@@ -41,14 +41,24 @@ router.get('/', function (req, res, next) {
 router.get('/buscador', function (req, res, next) {
     const { ciudad_id, tipo_id } = req.query;
 
-    let sql = `SELECT ciudades.nombre AS ciudad, tipo_de_propiedad.nombre AS tipo, 
-                GROUP_CONCAT(imagenes.url) AS imagenes, propiedades.id, propiedades.precio_renta, 
-                propiedades.capacidad, propiedades.direccion, propiedades.num_habitaciones, 
-                propiedades.num_banos 
-                FROM propiedades 
-                JOIN ciudades ON propiedades.ciudad_id = ciudades.id 
-                JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id 
-                JOIN imagenes ON propiedades.id = imagenes.propiedad_id`;
+    let sql = `
+        SELECT 
+            propiedades.id, 
+            GROUP_CONCAT(imagenes.url) AS imagenes, 
+            propiedades.precio_renta, 
+            propiedades.direccion, 
+            ciudades.nombre AS ciudad, 
+            propiedades.num_habitaciones, 
+            propiedades.num_banos, 
+            tipo_de_propiedad.nombre AS tipo 
+        FROM 
+            propiedades 
+        JOIN 
+            ciudades ON propiedades.ciudad_id = ciudades.id 
+        JOIN 
+            tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id 
+        JOIN 
+            imagenes ON propiedades.id = imagenes.propiedad_id`;
 
     const filtros = [];
     const condiciones = [];
