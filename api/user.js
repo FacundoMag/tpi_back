@@ -72,7 +72,7 @@ router.post('/inicio_sesion', function(req, res, next) {
                     res.json({
                         status: 'ok',
                         token, 
-                       
+                        usuario_id: result[0].id
                     });
                 } else {
                     console.error("correo/contraseña incorrecto");
@@ -94,13 +94,13 @@ router.put('/edit', function(req, res, next){
     } 
 
     const verificacionToken = verificarToken(token, TOKEN_SECRET);
-    if(verificacionToken?.data?.usuario_id === undefined){
-            console.error('token invalido');
-            return res.json({
-                status: "error",
-                error: "token invalido"
-            })
-    }
+        if(verificacionToken?.data?.usuario_id === undefined){
+                console.error('token invalido');
+                return res.json({
+                    status: "error",
+                    error: "token invalido"
+                })
+        }
 
     
 
