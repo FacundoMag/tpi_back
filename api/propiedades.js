@@ -446,10 +446,6 @@ router.post('/propiedad/resena', function (req, res, next) {
             result
         })
     })
-
-
-
-
 })
 
 module.exports = router;

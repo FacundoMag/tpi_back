@@ -6,9 +6,6 @@ require('dotenv').config();
 
 const TOKEN_SECRET = process.env.TOKEN_SECRET;
 
-
-
-
 const checkUsuario = function(correo){
     return new Promise((resolve, reject)=>{
         const sql = "SELECT id FROM usuarios WHERE correo = ?"
@@ -30,7 +27,6 @@ const guardarUsuario = function(nombre, apellido, telefono, correo, contraseñaH
 
     })
 }
-
 
 router.post('/registrarse', function(req, res, next){
     const {nombre, apellido, telefono, correo, contraseña} = req.body;
