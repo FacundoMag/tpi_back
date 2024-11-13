@@ -203,6 +203,10 @@ GROUP BY
                 console.error(error);
                 return res.status(500).json({ status: 'error', error: 'Error al obtener favoritos' });
             }
+            propiedadesConimg = propiedadesConimg.map(propiedad => ({
+                ...propiedad,
+                imagenes: propiedad.imagenes ? propiedad.imagenes.split(',') : []
+               }))
             res.json({ status: 'ok', favoritos: results });
         });
     });
