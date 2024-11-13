@@ -170,12 +170,33 @@ router.put('/edit', function(req, res, next){
     
 
     router.get('/favoritos', (req, res) => {
-        const { id } = req.query;
+        const token = req.headers.authorization;
+        const verificacionToken = verificarToken(token, TOKEN_SECRET);
+        const id = verificacionToken?.data?.usuario_id;
         const sql = `
-            SELECT propiedades.*
-            FROM propiedades
-            JOIN favoritos ON propiedades.id = favoritos.propiedad_id
-            WHERE favoritos.usuario_id = ?
+           SELECT 
+           propiedades.id,
+    GROUP_CONCAT(imagenes.url) AS imagenes,
+    propiedades.precio_renta,
+    propiedades.direccion,
+    ciudades.nombre AS ciudad,
+    propiedades.num_habitaciones,
+    propiedades.num_banos,
+    tipo_de_propiedad.nombre AS tipo
+FROM 
+    favoritos
+JOIN 
+    propiedades ON favoritos.propiedad_id = propiedades.id
+JOIN 
+    tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id
+JOIN 
+    ciudades ON propiedades.ciudad_id = ciudades.id
+JOIN 
+    imagenes ON propiedades.id = imagenes.propiedad_id
+WHERE 
+    favoritos.usuario_id = ?
+GROUP BY 
+    propiedades.id;
         `;
         conexion.query(sql, [id], (error, results) => {
             if (error) {
