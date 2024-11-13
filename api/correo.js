@@ -20,12 +20,23 @@ const transporter = nodemailer.createTransport({
 const enviarCorreo = (destinatarios, asunto, mensaje) => {
     return new Promise(async(resolve, reject) => {
         const mailOptions = {
-            from: "Souther Scapes <escapessouthern@gmail.com>",  
+            from: "Souther Scapes <escapessouthern@gmail.com>",
             to: destinatarios,
             subject: asunto,
-            text: mensaje
+            html: `
+                <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+                    <div style="text-align: center; padding: 20px;">
+                        <h1 style="color: #4CAF50;">${asunto}</h1>
+                    </div>
+                    <div style="padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
+                        <p>${mensaje}</p>
+                    </div>
+                    <div style="text-align: center; padding: 10px; color: #888;">
+                        <p>© ${new Date().getFullYear()} Southern Scapes. Todos los derechos reservados.</p>
+                    </div>
+                </div>
+            `
         };
-        console.log(mailOptions)
         transporter.sendMail(mailOptions)
         .then((info) => {
             console.log(info)
@@ -36,8 +47,8 @@ const enviarCorreo = (destinatarios, asunto, mensaje) => {
             reject(error)
         })
     })
-    
 };
+
 
 // Función para obtener correos de propietario e inquilino
 const obtenerCorreos = (inquilino_id, propietario_id) => {

@@ -40,9 +40,25 @@ router.get('/', function (req, res, next) {
 
 router.get('/buscador', function (req, res, next) {
     const { ciudad_id, tipo_id } = req.query;
-    
-    let sql = "SELECT ciudades.nombre AS ciudades, tipo_de_propiedad.nombre AS tipo_de_propiedad, GROUP_CONCAT(imagenes.url) AS imagenes, propiedades.id, propiedades.precio_renta, propiedades.capacidad, propiedades.direccion, propiedades.num_habitaciones, propiedades.num_banos FROM propiedades JOIN ciudades ON propiedades.ciudad_id = ciudades.id JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id JOIN imagenes ON propiedades.id = imagenes.propiedad_id";
-    
+
+    let sql = `
+        SELECT 
+            propiedades.id, 
+            GROUP_CONCAT(imagenes.url) AS imagenes, 
+            propiedades.precio_renta, 
+            propiedades.direccion, 
+            ciudades.nombre AS ciudad, 
+            propiedades.num_habitaciones, 
+            propiedades.num_banos, 
+            tipo_de_propiedad.nombre AS tipo 
+        FROM 
+            propiedades 
+        JOIN 
+            ciudades ON propiedades.ciudad_id = ciudades.id 
+        JOIN 
+            tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id 
+        JOIN 
+            imagenes ON propiedades.id = imagenes.propiedad_id`;
 
     const filtros = [];
     const condiciones = [];
@@ -51,30 +67,36 @@ router.get('/buscador', function (req, res, next) {
         condiciones.push("propiedades.ciudad_id = ?");
         filtros.push(ciudad_id);
     }
-    
+
     if (tipo_id) {
         condiciones.push("propiedades.tipo_id = ?");
         filtros.push(tipo_id);
     }
-    
+
     if (condiciones.length > 0) {
         sql += " WHERE " + condiciones.join(" AND ");
     }
 
     sql += " GROUP BY propiedades.id";
 
-    conexion.query(sql, filtros, function (error, result) {
+    conexion.query(sql, filtros, function (error, propiedadesConimg) {
         if (error) {
             console.log(error);
             return res.status(500).json({
                 error: "Error al realizar la búsqueda"
             });
         }
-        res.json({
-            result
-        });
+        propiedadesConimg = propiedadesConimg.map(propiedad => ({
+            ...propiedad,
+            imagenes: propiedad.imagenes ? propiedad.imagenes.split(',') : []
+           }))
+           res.json(
+            propiedadesConimg
+           ) 
+       
     });
 });
+
 
 
 
@@ -172,7 +194,7 @@ router.post('/', upload, (req, res) => {
 
     const {serviciosSeleccionados, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion } = req.body;
     console.log(serviciosSeleccionados);
-    const servicios = JSON.parse("["+serviciosSeleccionados+"]")
+    const servicios = JSON.parse("["+serviciosSeleccionados+"]");
     //const serviciosSeleccionados = req.params;
     // const servicios = Array.isArray(serviciosSeleccionados) ? serviciosSeleccionados : [];
     //const serviciosString = serviciosSeleccionados.join('.');
@@ -216,7 +238,6 @@ router.post('/', upload, (req, res) => {
             //     console.error("Error al insertar servicios:", error);
             //     res.status(500).json({ error: "Error al insertar servicios" });
             // });
-
         }
 
         if (req.files && req.files.length > 0) {
@@ -424,10 +445,6 @@ router.post('/propiedad/resena', function (req, res, next) {
             result
         })
     })
-
-
-
-
 })
 
 module.exports = router;

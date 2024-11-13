@@ -6,9 +6,6 @@ require('dotenv').config();
 
 const TOKEN_SECRET = process.env.TOKEN_SECRET;
 
-
-
-
 const checkUsuario = function(correo){
     return new Promise((resolve, reject)=>{
         const sql = "SELECT id FROM usuarios WHERE correo = ?"
@@ -30,7 +27,6 @@ const guardarUsuario = function(nombre, apellido, telefono, correo, contraseñaH
 
     })
 }
-
 
 router.post('/registrarse', function(req, res, next){
     const {nombre, apellido, telefono, correo, contraseña} = req.body;
@@ -72,7 +68,7 @@ router.post('/inicio_sesion', function(req, res, next) {
                     res.json({
                         status: 'ok',
                         token, 
-                       
+                        usuario_id: result[0].id
                     });
                 } else {
                     console.error("correo/contraseña incorrecto");
@@ -94,13 +90,13 @@ router.put('/edit', function(req, res, next){
     } 
 
     const verificacionToken = verificarToken(token, TOKEN_SECRET);
-    if(verificacionToken?.data?.usuario_id === undefined){
-            console.error('token invalido');
-            return res.json({
-                status: "error",
-                error: "token invalido"
-            })
-    }
+        if(verificacionToken?.data?.usuario_id === undefined){
+                console.error('token invalido');
+                return res.json({
+                    status: "error",
+                    error: "token invalido"
+                })
+        }
 
     
 
@@ -139,21 +135,29 @@ router.put('/edit', function(req, res, next){
         })
     })
 
-    router.post('/favoritos', (req, res) => {
-        const { id, propiedad_id } = req.body; // `id` es el usuario que marca la propiedad como favorita
+    router.post('/favoritos', function (req, res, next) {
+        const token = req.headers.authorization;
+        const {propiedad_id} = req.query;
+        const verificacionToken = verificarToken(token, TOKEN_SECRET);
+        const usuario_id = verificacionToken?.data?.usuario_id;
         const sql = 'INSERT INTO favoritos (usuario_id, propiedad_id) VALUES (?, ?)';
-        conexion.query(sql, [id, propiedad_id], (error, result) => {
+        
+        conexion.query(sql, [usuario_id, propiedad_id], (error, result) => {
             if (error) {
                 console.error(error);
+
                 return res.status(500).json({ status: 'error', error: 'Error al marcar como favorito' });
             }
-            res.json({ status: 'ok', message: 'Propiedad marcada como favorita' });
+            return res.json({ status: 'ok', message: 'Propiedad marcada como favorita' });
         });
     });
     
     
     router.delete('/favoritos', (req, res) => {
-        const { id, propiedad_id } = req.body;
+        const token = req.headers.authorization;
+        const verificacionToken = verificarToken(token, TOKEN_SECRET);
+        const id = verificacionToken?.data?.usuario_id;
+        const {propiedad_id} = req.query;
         const sql = 'DELETE FROM favoritos WHERE usuario_id = ? AND propiedad_id = ?';
         conexion.query(sql, [id, propiedad_id], (error, result) => {
             if (error) {
@@ -166,12 +170,33 @@ router.put('/edit', function(req, res, next){
     
 
     router.get('/favoritos', (req, res) => {
-        const { id } = req.query;
+        const token = req.headers.authorization;
+        const verificacionToken = verificarToken(token, TOKEN_SECRET);
+        const id = verificacionToken?.data?.usuario_id;
         const sql = `
-            SELECT propiedades.*
-            FROM propiedades
-            JOIN favoritos ON propiedades.id = favoritos.propiedad_id
-            WHERE favoritos.usuario_id = ?
+           SELECT 
+           propiedades.id,
+    GROUP_CONCAT(imagenes.url) AS imagenes,
+    propiedades.precio_renta,
+    propiedades.direccion,
+    ciudades.nombre AS ciudad,
+    propiedades.num_habitaciones,
+    propiedades.num_banos,
+    tipo_de_propiedad.nombre AS tipo
+FROM 
+    favoritos
+JOIN 
+    propiedades ON favoritos.propiedad_id = propiedades.id
+JOIN 
+    tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id
+JOIN 
+    ciudades ON propiedades.ciudad_id = ciudades.id
+JOIN 
+    imagenes ON propiedades.id = imagenes.propiedad_id
+WHERE 
+    favoritos.usuario_id = ?
+GROUP BY 
+    propiedades.id;
         `;
         conexion.query(sql, [id], (error, results) => {
             if (error) {
