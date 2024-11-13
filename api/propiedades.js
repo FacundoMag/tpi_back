@@ -194,7 +194,7 @@ router.post('/', upload, (req, res) => {
 
     const {serviciosSeleccionados, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion } = req.body;
     console.log(serviciosSeleccionados);
-    const servicios = JSON.parse("["+serviciosSeleccionados+"]")
+    const servicios = JSON.parse("["+serviciosSeleccionados+"]");
     //const serviciosSeleccionados = req.params;
     // const servicios = Array.isArray(serviciosSeleccionados) ? serviciosSeleccionados : [];
     //const serviciosString = serviciosSeleccionados.join('.');
@@ -238,7 +238,6 @@ router.post('/', upload, (req, res) => {
             //     console.error("Error al insertar servicios:", error);
             //     res.status(500).json({ error: "Error al insertar servicios" });
             // });
-
         }
 
         if (req.files && req.files.length > 0) {
@@ -446,10 +445,6 @@ router.post('/propiedad/resena', function (req, res, next) {
             result
         })
     })
-
-
-
-
 })
 
 module.exports = router;
