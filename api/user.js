@@ -135,18 +135,20 @@ router.put('/edit', function(req, res, next){
         })
     })
 
-    router.post('/favoritos', (req, res) => {
+    router.post('/favoritos', function (req, res, next) {
         const token = req.headers.authorization;
         const {propiedad_id} = req.query;
         const verificacionToken = verificarToken(token, TOKEN_SECRET);
-        const id = verificacionToken?.data?.usuario_id;
+        const usuario_id = verificacionToken?.data?.usuario_id;
         const sql = 'INSERT INTO favoritos (usuario_id, propiedad_id) VALUES (?, ?)';
-        conexion.query(sql, [id, propiedad_id], (error, result) => {
+        
+        conexion.query(sql, [usuario_id, propiedad_id], (error, result) => {
             if (error) {
                 console.error(error);
+
                 return res.status(500).json({ status: 'error', error: 'Error al marcar como favorito' });
             }
-            res.json({ status: 'ok', message: 'Propiedad marcada como favorita' });
+            return res.json({ status: 'ok', message: 'Propiedad marcada como favorita' });
         });
     });
     
