@@ -198,12 +198,16 @@ WHERE
 GROUP BY 
     propiedades.id;
         `;
-        conexion.query(sql, [id], (error, results) => {
+        conexion.query(sql, [id], (error, propiedadesConimg) => {
             if (error) {
                 console.error(error);
                 return res.status(500).json({ status: 'error', error: 'Error al obtener favoritos' });
             }
-            res.json({ status: 'ok', favoritos: results });
+            propiedadesConimg = propiedadesConimg.map(propiedad => ({
+                ...propiedad,
+                imagenes: propiedad.imagenes ? propiedad.imagenes.split(',') : []
+               }))
+            res.json({ status: 'ok', favoritos: propiedadesConimg });
         });
     });
     

@@ -268,6 +268,7 @@ router.post('/', upload, (req, res) => {
                         propiedadId: propiedadId,
                         imagenes: imagenesSubidas.map(imagen => imagen.imagenUrl)
                     });
+                    console.log(imagenesSubidas);
                 })
                 .catch(err => {
                     res.status(500).json({ error: 'Error al guardar las imágenes: ' + err.message });
