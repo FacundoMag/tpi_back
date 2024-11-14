@@ -97,12 +97,9 @@ router.get('/buscador', function (req, res, next) {
     });
 });
 
-
-
-
 router.get('/propiedad', (req, res) => {
     const { id } = req.query;
-    const sql = "SELECT usuarios.telefono AS telefono_propietario, propiedades.direccion, ciudades.nombre AS ciudades, propiedades.num_habitaciones, propiedades.num_banos, propiedades.capacidad, propiedades.tamano_m2, propiedades.precio_renta, tipo_de_propiedad.nombre AS tipo_de_propiedad, propiedades.descripcion FROM propiedades JOIN ciudades ON propiedades.ciudad_id = ciudades.id JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id JOIN usuarios ON usuarios.id = propiedades.propietario_id WHERE propiedades.id = ?";
+    const sql = "SELECT propiedades.propietario_id, usuarios.telefono AS telefono_propietario, propiedades.direccion, ciudades.nombre AS ciudades, propiedades.num_habitaciones, propiedades.num_banos, propiedades.capacidad, propiedades.tamano_m2, propiedades.precio_renta, tipo_de_propiedad.nombre AS tipo_de_propiedad, propiedades.descripcion FROM propiedades JOIN ciudades ON propiedades.ciudad_id = ciudades.id JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id JOIN usuarios ON usuarios.id = propiedades.propietario_id WHERE propiedades.id = ?";
     const sql2 = "SELECT url FROM imagenes WHERE propiedad_id = ?";
     const sql3 = "SELECT usuarios.nombre AS usuarios, usuarios.apellido AS usuarios, resenas.comentario, resenas.valoracion FROM resenas JOIN usuarios ON resenas.usuario_id = usuarios.id WHERE resenas.propiedad_id = ?";
     const sql4 = "SELECT servicios.servicio AS servicios FROM propiedades_servicios JOIN servicios ON propiedades_servicios.servicio_id = servicios.id WHERE propiedades_servicios.propiedad_id = ? ";
@@ -268,6 +265,7 @@ router.post('/', upload, (req, res) => {
                         propiedadId: propiedadId,
                         imagenes: imagenesSubidas.map(imagen => imagen.imagenUrl)
                     });
+                    console.log(imagenesSubidas);
                 })
                 .catch(err => {
                     res.status(500).json({ error: 'Error al guardar las imágenes: ' + err.message });
@@ -362,8 +360,12 @@ router.delete('/', (req, res) => {
     }
 
     const imagenSQL = "SELECT url FROM imagenes WHERE propiedad_id = ?";
-    const sql = 'DELETE FROM propiedades WHERE id = ?';
+    const sql = 'DELETE FROM propiedades_servicios WHERE propiedad_id = ?';
     const sql2 = "DELETE FROM imagenes WHERE propiedad_id = ?";
+    const sql3 = "DELETE FROM favoritos WHERE propiedad_id = ?";
+    const sql4 = "DELETE FROM resenas WHERE propiedad_id = ?";
+    const sql5 = "DELETE FROM propiedades WHERE id = ?";
+    
 
     // Obtener las imágenes asociadas a la propiedad antes de eliminarla
     conexion.query(imagenSQL, [id], function (error, imagenes) {
@@ -396,23 +398,41 @@ router.delete('/', (req, res) => {
                 console.error('Error al eliminar las imágenes de la base de datos:', err);
                 return res.status(500).json({ error: 'Error al eliminar las imágenes de la base de datos' });
             }
+            conexion.query(sql, [id], function(error, result){
+                if(error){
+                    console.error('Error al eliminar la propiedad de la tabla propiedades_servicios')
+                    return res.status(406).json({ error: 'Error al eliminar la propiedad de la tabla propiedades_servicios'})
+                }
+                conexion.query(sql3, [id], function(error, result){
+                    if(error){
+                        console.error('Error al eliminar la propiedad de la tabla favoritos');
+                        return res.status(503).json({error: 'Error al eliminar la propiedad de la tabla favoritos'});
+                    }
+                    conexion.query(sql4, [id], function(error, result){
+                        if(error){
+                            console.error('Error al eliminar la propiedad de la tabla resenas');
+                            return res.status(503).json({error: 'Error al eliminar la propiedad de la tabla resenas'});
+                        }
+                        conexion.query(sql5, [id], function (error, result) {
+                            if (error) {
+                                console.error('Error al eliminar la propiedad:', error);
+                                return res.status(500).json({
+                                    error: 'Error al eliminar la propiedad'
+                                });
+                            }
+            
+                            if (result.affectedRows === 0) {
+                                return res.status(404).json({ message: 'Propiedad no encontrada' });
+                            }
+            
+                            // Respuesta exitosa
+                            res.json({ message: 'Propiedad eliminada con éxito' });
+                        });
 
+                    })
+                })
+            })
             // Eliminar la propiedad de la base de datos
-            conexion.query(sql, [id], function (error, result) {
-                if (error) {
-                    console.error('Error al eliminar la propiedad:', error);
-                    return res.status(500).json({
-                        error: 'Error al eliminar la propiedad'
-                    });
-                }
-
-                if (result.affectedRows === 0) {
-                    return res.status(404).json({ message: 'Propiedad no encontrada' });
-                }
-
-                // Respuesta exitosa
-                res.json({ message: 'Propiedad eliminada con éxito' });
-            });
         });
     });
 });
