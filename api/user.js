@@ -117,23 +117,23 @@ router.put('/edit', function(req, res, next){
         })
     })
 
-    router.get('/mi_perfil', function(req, res, next){
-        const token = req.headers.authorization;
-        const verificacionToken = verificarToken(token, TOKEN_SECRET);
-        const id = verificacionToken?.data?.usuario_id;
+    // router.get('/mi_perfil', function(req, res, next){
+    //     const token = req.headers.authorization;
+    //     const verificacionToken = verificarToken(token, TOKEN_SECRET);
+    //     const id = verificacionToken?.data?.usuario_id;
 
-        const sql = "SELECT nombre, apellido, telefono, correo FROM usuarios WHERE id = ?";
-        conexion.query(sql, [id], function(error, result){
-            if(error){
-                return res.status(400).json({
-                    error: 'error al traer los datos'
-                })
-            }
-            res.json({
-                result
-            })
-        })
-    })
+    //     const sql = "SELECT nombre, apellido, telefono, correo FROM usuarios WHERE id = ?";
+    //     conexion.query(sql, [id], function(error, result){
+    //         if(error){
+    //             return res.status(400).json({
+    //                 error: 'error al traer los datos'
+    //             })
+    //         }
+    //         res.json({
+    //             result
+    //         })
+    //     })
+    // })
 
     router.post('/favoritos', function (req, res, next) {
         const token = req.headers.authorization;
