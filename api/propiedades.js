@@ -97,9 +97,6 @@ router.get('/buscador', function (req, res, next) {
     });
 });
 
-
-
-
 router.get('/propiedad', (req, res) => {
     const { id } = req.query;
     const sql = "SELECT propiedades.propietario_id, usuarios.telefono AS telefono_propietario, propiedades.direccion, ciudades.nombre AS ciudades, propiedades.num_habitaciones, propiedades.num_banos, propiedades.capacidad, propiedades.tamano_m2, propiedades.precio_renta, tipo_de_propiedad.nombre AS tipo_de_propiedad, propiedades.descripcion FROM propiedades JOIN ciudades ON propiedades.ciudad_id = ciudades.id JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id JOIN usuarios ON usuarios.id = propiedades.propietario_id WHERE propiedades.id = ?";
