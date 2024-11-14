@@ -19,10 +19,12 @@ router.get('/', (req, res) => {
 });
 
 // Obtener una reservación por ID
-router.get('/:id', (req, res) => {
-    const { id } = req.params;
-    const sql = 'SELECT * FROM reservaciones WHERE id = ?';
-    conexion.query(sql, [id], (err, results) => {
+router.get('/mis_reservaciones', (req, res) => {
+    const token = req.headers.authorization;
+    const verificacionToken = verificarToken(token, TOKEN_SECRET);
+    const usuario_id = verificacionToken?.data?.usuario_id;
+    const sql = 'SELECT * FROM reservaciones WHERE inquilino_id = ?';
+    conexion.query(sql, [usuario_id], (err, results) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
