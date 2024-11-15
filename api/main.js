@@ -24,6 +24,8 @@ router.use('/propiedades', function(req, res, next) {
 
     // Verificar token para otros métodos
     const token = req.headers.authorization;
+    console.log('Token recibido:', token);  // Asegúrate de ver el token en los logs
+
     if (!token) {
         console.error('Sin token');
         return res.status(403).json({
@@ -32,7 +34,12 @@ router.use('/propiedades', function(req, res, next) {
         });
     }
 
-    const verificacionToken = verificarToken(token, TOKEN_SECRET);
+    // Extraer el token si viene en el formato "Bearer <token>"
+    const tokenParts = token.split(' ');
+    const actualToken = tokenParts.length === 2 ? tokenParts[1] : token;
+    
+    const verificacionToken = verificarToken(actualToken, TOKEN_SECRET);
+
     if (verificacionToken?.data?.usuario_id !== undefined) {
         req.user_id = verificacionToken.data.usuario_id;  // Asigna usuario_id a req.user_id
         console.log('ID del usuario autenticado:', req.user_id);  // Muestra el ID para verificar
@@ -44,6 +51,7 @@ router.use('/propiedades', function(req, res, next) {
         });
     }
 });
+
 
 
 
