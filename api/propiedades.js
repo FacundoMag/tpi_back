@@ -11,7 +11,7 @@ const TOKEN_SECRET = process.env.TOKEN_SECRET;
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'uploads/');
+        cb(null, 'public/images/');
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -19,7 +19,7 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({ storage: storage }).array('imagen', 10);
+const upload = multer({ storage }).array('imagen', 10);
 
 router.get('/', function (req, res, next) {
     const sql = "SELECT propiedades.id, GROUP_CONCAT(imagenes.url) AS imagenes, propiedades.precio_renta, propiedades.direccion, ciudades.nombre AS ciudad, propiedades.num_habitaciones, propiedades.num_banos, tipo_de_propiedad.nombre AS tipo FROM propiedades JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id JOIN ciudades ON propiedades.ciudad_id = ciudades.id JOIN imagenes ON propiedades.id = imagenes.propiedad_id GROUP BY propiedades.id";
@@ -176,104 +176,89 @@ router.get('/', function (req, res, next) {
 })
 
 router.post('/', upload, (req, res) => {
-    const token = req.headers.authorization;
+    const usuario_id = req.user_id; // El ID del usuario autenticado ya extraído
 
-    if (!token) {
-        return res.status(403).json({
-            status: 'error',
-            error: "No tienes token"
-        });
-    }
-
-    const verificacionToken = verificarToken(token, TOKEN_SECRET);
-    const usuario_id = verificacionToken?.data?.usuario_id
-
-
-    const {serviciosSeleccionados, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion } = req.body;
-    console.log(serviciosSeleccionados);
-    const servicios = JSON.parse("["+serviciosSeleccionados+"]");
-    //const serviciosSeleccionados = req.params;
-    // const servicios = Array.isArray(serviciosSeleccionados) ? serviciosSeleccionados : [];
-    //const serviciosString = serviciosSeleccionados.join('.');
+    const { caracteristicas, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion } = req.body;
+    
+    const servicios = caracteristicas.split(',')
+    
+    console.log(req.body, servicios);
 
     const sqlPropiedad = `INSERT INTO propiedades 
                          (propietario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion) 
-                         VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
     conexion.query(sqlPropiedad, [usuario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion], (err, result) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
 
-
-        const sqlServicioPropiedad = "INSERT INTO propiedades_servicios (servicio_id, propiedad_id) VALUES (?, ?);"
-
         const propiedadId = result.insertId;
-        console.log(servicios)
 
         if (servicios.length > 0) {
+            const sqlServicioPropiedad = "INSERT INTO propiedades_servicios (servicio_id, propiedad_id) VALUES (?, ?)";
             const ingresarServicios = servicios.map(servicio_id => {
                 return new Promise((resolve, reject) => {
-                    conexion.query(sqlServicioPropiedad, [servicio_id, propiedadId], function (error, result) {
+                    conexion.query(sqlServicioPropiedad, [servicio_id, propiedadId], (error, result) => {
                         if (error) {
                             return reject(error);
-                        }
-                        resolve(result)
-                    })
-
-                })
-            })
-
-            Promise.all(ingresarServicios)
-            // .then(results => {
-               
-            //     console.log("Todos los servicios fueron insertados correctamente:", results);
-            //     res.status(200).json({ message: "Servicios insertados correctamente" });
-            // })
-            // .catch(error => {
-            
-            //     console.error("Error al insertar servicios:", error);
-            //     res.status(500).json({ error: "Error al insertar servicios" });
-            // });
-        }
-
-        if (req.files && req.files.length > 0) {
-
-            const imagenesSubidas = req.files.map(file => ({
-                propiedadId: propiedadId,
-                imagenUrl: file.filename
-            }));
-
-            const sqlImagen = `INSERT INTO imagenes (propiedad_id, url) VALUES (?, ?)`;
-
-            const promises = imagenesSubidas.map(imagen => {
-                return new Promise((resolve, reject) => {
-                    conexion.query(sqlImagen, [imagen.propiedadId, imagen.imagenUrl], (err, result) => {
-                        if (err) {
-                            return reject(err);
                         }
                         resolve(result);
                     });
                 });
             });
 
-
-            Promise.all(promises)
+            Promise.all(ingresarServicios)
                 .then(() => {
-                    res.status(201).json({
-                        message: 'Propiedad e imágenes creadas con éxito',
-                        propiedadId: propiedadId,
-                        imagenes: imagenesSubidas.map(imagen => imagen.imagenUrl)
-                    });
-                    console.log(imagenesSubidas);
-                })
-                .catch(err => {
-                    res.status(500).json({ error: 'Error al guardar las imágenes: ' + err.message });
-                });
+                    if (req.files && req.files.length > 0) {
+                        const imagenesSubidas = req.files.map(file => ({
+                            propiedadId: propiedadId,
+                            imagenUrl: file.filename
+                        }));
 
+                        const sqlImagen = `INSERT INTO imagenes (propiedad_id, url) VALUES (?, ?)`;
+
+                        const promises = imagenesSubidas.map(imagen => {
+                            return new Promise((resolve, reject) => {
+                                conexion.query(sqlImagen, [imagen.propiedadId, imagen.imagenUrl], (err, result) => {
+                                    if (err) {
+                                        return reject(err);
+                                    }
+                                    resolve(result);
+                                });
+                            });
+                        });
+
+                        Promise.all(promises)
+                            .then(() => {
+                                res.status(201).json({
+                                    message: 'Propiedad e imágenes creadas con éxito',
+                                    propiedadId: propiedadId,
+                                    imagenes: imagenesSubidas.map(imagen => imagen.imagenUrl)
+                                });
+                            })
+                            .catch(err => {
+                                res.status(500).json({ error: 'Error al guardar las imágenes: ' + err.message });
+                            });
+                    } else {
+                        res.status(201).json({
+                            message: 'Propiedad creada con éxito',
+                            propiedadId: propiedadId
+                        });
+                    }
+                })
+                .catch(error => {
+                    res.status(500).json({ error: 'Error al insertar servicios: ' + error.message });
+                });
+        } else {
+            res.status(201).json({
+                message: 'Propiedad creada con éxito, pero sin servicios adicionales',
+                propiedadId: propiedadId
+            });
         }
     });
 });
+
 
 
 // Ruta para editar una propiedad
@@ -291,8 +276,9 @@ router.put('/', (req, res) => {
 
     // Validar que todos los campos necesarios estén presentes
     const { num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion } = req.body;
-
-    if ([num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion].some(field => field === undefined || field === null)) {
+    
+    
+    if ([num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion].some((field) => (field === undefined || field === null))) {
         console.error('Faltan campos obligatorios');
         return res.status(400).json({
             status: 'error',

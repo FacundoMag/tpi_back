@@ -31,7 +31,9 @@ router.get('/mis_reservaciones', (req, res) => {
         if (results.length === 0) {
             return res.status(404).json({ message: 'Reservación no encontrada' });
         }
-        res.json(results[0]);
+        res.json({
+            results
+        });
     });
 });
 
