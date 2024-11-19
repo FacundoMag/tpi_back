@@ -213,38 +213,79 @@ GROUP BY
     
     
 
-router.get('/mis_propiedades', function(req, res, next){
-    const token = req.headers.authorization;
-    if(!token || !id){
-        console.error('acceso denegado');
-        res.status(403).res.json({
-            status: 'error', error: 'acceso denegado'
-        })
-    } 
-
-    const verificacionToken = verificarToken(token, TOKEN_SECRET);
-    if(verificacionToken?.data?.usuario_id === undefined){
-            console.error('token invalido');
-            return res.json({
-                status: "error",
-                error: "token invalido"
-            })
-    }
-
-    const usuario_id = verificacionToken?.data?.usuario_id;
-    const sql = "SELECT imagenes.url, propiedades.precio_renta, propiedades.direccion, propiedades.num_habitaciones, propiedades.num_banos FROM propiedades JOIN imagenes ON propiedades.id = imagenes.propiedad_id WHERE propiedades.propietario_id = ?";
-    
-    conexion.query(sql, [usuario_id], function(error, result){
-        if (error){
-             return res.status(400).json({
-                error: "no tiene ninguna casa registrada"
-             })
+    router.get('/mis_propiedades', function(req, res, next) {
+        const token = req.headers.authorization;
+        
+        // Verificar si el token está presente
+        if (!token) {
+            console.error('Acceso denegado: token faltante');
+            return res.status(403).json({
+                status: 'error',
+                error: 'acceso denegado'
+            });
         }
-        res.json({
-            result
-        })
-    })
-})
+    
+        // Verificar y decodificar el token
+        const verificacionToken = verificarToken(token, TOKEN_SECRET);
+        if (!verificacionToken || !verificacionToken.data || !verificacionToken.data.usuario_id) {
+            console.error('Token inválido');
+            return res.status(403).json({
+                status: "error",
+                error: "token inválido"
+            });
+        }
+    
+        // Obtener el usuario_id del token
+        const usuario_id = verificacionToken.data.usuario_id;
+    
+        // Consulta SQL para seleccionar una imagen por propiedad
+        const sql = `
+            SELECT 
+                propiedades.id, 
+                (SELECT url FROM imagenes WHERE imagenes.propiedad_id = propiedades.id LIMIT 1) AS url, 
+                propiedades.precio_renta, 
+                ciudades.nombre AS ciudad, 
+                propiedades.direccion, 
+                propiedades.num_habitaciones, 
+                propiedades.num_banos, 
+                tipo_de_propiedad.nombre AS tipo 
+            FROM 
+                propiedades 
+            JOIN 
+                ciudades ON propiedades.ciudad_id = ciudades.id 
+            JOIN 
+                tipo_de_propiedad ON tipo_de_propiedad.id = propiedades.tipo_id 
+            WHERE 
+                propiedades.propietario_id = 18;
+        `;
+    
+        // Ejecutar la consulta a la base de datos
+        conexion.query(sql, [usuario_id], function(error, result) {
+            if (error) {
+                console.error('Error en la consulta de propiedades:', error);
+                return res.status(500).json({
+                    status: 'error',
+                    error: 'Error al obtener propiedades'
+                });
+            }
+            
+            // Si no hay propiedades, enviar un mensaje adecuado
+            if (result.length === 0) {
+                return res.status(404).json({
+                    status: 'error',
+                    error: 'No tiene ninguna propiedad registrada'
+                });
+            }
+    
+            // Enviar el resultado
+            res.json({
+                status: 'success',
+                result
+            });
+        });
+    });
+    
+    
 
 
 module.exports = router;
