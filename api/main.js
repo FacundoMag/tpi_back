@@ -83,7 +83,7 @@ router.use('/reservacion', reservacionRouter);
 
 router.use('/user', userRouter);
 
-router.use('/imagenes', express.static('./uploads/') )
+router.use('/imagenes', express.static('./public/images') )
 
 //router.use('/public', propPublicRouter)
 
