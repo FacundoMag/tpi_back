@@ -80,7 +80,7 @@ router.post('/inicio_sesion', function(req, res, next) {
 });
 
 
-router.put('/edit', function(req, res, next){
+router.put('/mi_perfil', function(req, res, next){
     const token = req.headers.authorization;
     if(!token){
         console.error('acceso denegado');
