@@ -53,9 +53,6 @@ router.use('/propiedades', function(req, res, next) {
 });
 
 
-
-
-
 router.use('/reservacion', function(req, res, next){
 
     const token = req.headers.authorization;
