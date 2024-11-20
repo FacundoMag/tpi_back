@@ -9,6 +9,7 @@ require('dotenv').config();
 
 const TOKEN_SECRET = process.env.TOKEN_SECRET;
 
+// Configuración de almacenamiento
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, 'public/images/');
@@ -19,7 +20,24 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({ storage }).array('imagen', 10);
+// Filtrado de archivos
+const fileFilter = (req, file, cb) => {
+    // Aceptar solo archivos de imagen
+    if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
+    } else {
+        cb(new Error('Not an image! Please upload only images.'), false);
+    }
+};
+
+// Inicialización de Multer con almacenamiento y filtros
+const upload = multer({
+    storage: storage,
+    fileFilter: fileFilter,
+    limits: {
+        fileSize: 1024 * 1024 * 5, // Limitar el tamaño del archivo a 5MB
+    },
+}).array('archivos', 10); // Aceptar un máximo de 10 archivos con el campo 'archivos'
 
 router.get('/', function (req, res, next) {
     const sql = "SELECT propiedades.id, GROUP_CONCAT(imagenes.url) AS imagenes, propiedades.precio_renta, propiedades.direccion, ciudades.nombre AS ciudad, propiedades.num_habitaciones, propiedades.num_banos, tipo_de_propiedad.nombre AS tipo FROM propiedades JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id JOIN ciudades ON propiedades.ciudad_id = ciudades.id JOIN imagenes ON propiedades.id = imagenes.propiedad_id GROUP BY propiedades.id";
@@ -176,21 +194,44 @@ router.get('/', function (req, res, next) {
 })
 
 router.post('/', upload, (req, res) => {
-    const usuario_id = req.user_id; // El ID del usuario autenticado ya extraído
-
+    const usuario_id = req.user_id;
     const { caracteristicas, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion } = req.body;
-    
-    const servicios = caracteristicas.split(',')
-    
-    console.log(req.body, servicios);
+
+    // Verificar todos los campos necesarios y añadir logs
+    if (!direccion || !ciudad_id || !num_habitaciones || !num_banos || !capacidad || !tamano_m2 || !precio_renta || !tipo_id || !descripcion) {
+        console.log('Campos faltantes:', { direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion });
+        return res.status(400).json({ error: "Todos los campos son obligatorios" });
+    }
+
+    if (!usuario_id) {
+        console.log('Falta usuario_id:', usuario_id);
+        return res.status(400).json({ error: "El campo 'userId' es obligatorio" });
+    }
+
+    // Mapeo de los servicios a sus IDs
+    const servicioMap = {
+        "wifi": 1,
+        "piscina": 2,
+        "aireAcondicionado": 3,
+        "tv": 4,
+        "garaje": 5,
+        "patio": 6
+    };
+
+    // Transformar los nombres de los servicios a sus IDs
+    const servicios = caracteristicas ? caracteristicas.split(',').map(servicio => servicioMap[servicio]) : [];
+
+    console.log('Datos recibidos:', { direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion });
+    console.log('Servicios:', servicios);
 
     const sqlPropiedad = `INSERT INTO propiedades 
-                         (propietario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion) 
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                          (propietario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion) 
+                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
     conexion.query(sqlPropiedad, [usuario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion], (err, result) => {
         if (err) {
-            return res.status(500).json({ error: err.message });
+            console.error('Error en la consulta SQL:', err);
+            return res.status(500).json({ error: 'Error en la consulta SQL', details: err.message });
         }
 
         const propiedadId = result.insertId;
@@ -238,7 +279,7 @@ router.post('/', upload, (req, res) => {
                                 });
                             })
                             .catch(err => {
-                                res.status(500).json({ error: 'Error al guardar las imágenes: ' + err.message });
+                                res.status(500).json({ error: 'Error al guardar las imágenes', details: err.message });
                             });
                     } else {
                         res.status(201).json({
@@ -248,7 +289,7 @@ router.post('/', upload, (req, res) => {
                     }
                 })
                 .catch(error => {
-                    res.status(500).json({ error: 'Error al insertar servicios: ' + error.message });
+                    res.status(500).json({ error: 'Error al insertar servicios', details: error.message });
                 });
         } else {
             res.status(201).json({
@@ -260,7 +301,7 @@ router.post('/', upload, (req, res) => {
 });
 
 
-
+  
 // Ruta para editar una propiedad
 router.put('/', (req, res) => {
     const { propiedad_id } = req.query;
