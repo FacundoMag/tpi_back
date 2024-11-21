@@ -36,6 +36,23 @@ router.get('/mis_reservaciones', (req, res) => {
         });
     });
 });
+router.get('/reservaciones_propietario', (req, res) => {
+    const token = req.headers.authorization;
+    const verificacionToken = verificarToken(token, TOKEN_SECRET);
+    const usuario_id = verificacionToken?.data?.usuario_id;
+    const sql = 'SELECT * FROM reservaciones WHERE propietario_id = ?';
+    conexion.query(sql, [usuario_id], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        if (results.length === 0) {
+            return res.status(404).json({ message: 'Reservación no encontrada' });
+        }
+        res.json({
+            results
+        });
+    });
+});
 
 // Crear una reservación
 router.post('/', async (req, res) => {
