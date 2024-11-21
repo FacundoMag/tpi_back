@@ -35,9 +35,9 @@ const upload = multer({
     storage: storage,
     fileFilter: fileFilter,
     limits: {
-        fileSize: 1024 * 1024 * 5, // Limitar el tamaño del archivo a 5MB
+        fileSize: 1024 * 1024 * 5, // Limita el tamaño del archivo a 5MB
     },
-}).array('archivos', 10); // Aceptar un máximo de 10 archivos con el campo 'archivos'
+}).array('archivos', 10); // Aceptar un máximo de 10 archivos 
 
 router.get('/', function (req, res, next) {
     const sql = "SELECT propiedades.id, GROUP_CONCAT(imagenes.url) AS imagenes, propiedades.precio_renta, propiedades.direccion, ciudades.nombre AS ciudad, propiedades.num_habitaciones, propiedades.num_banos, tipo_de_propiedad.nombre AS tipo FROM propiedades JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id JOIN ciudades ON propiedades.ciudad_id = ciudades.id JOIN imagenes ON propiedades.id = imagenes.propiedad_id GROUP BY propiedades.id";
@@ -315,7 +315,7 @@ router.put('/', (req, res) => {
         });
     }
 
-    // Validar que todos los campos necesarios estén presentes
+    // Valida que todos los campos necesarios estén presentes
     const { num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion } = req.body;
     
     
@@ -327,7 +327,7 @@ router.put('/', (req, res) => {
         });
     }
 
-    // Realizar la consulta para obtener el propietario de la propiedad
+    // Realiza la consulta para obtener el propietario de la propiedad
     const sql = "SELECT propietario_id FROM propiedades WHERE ID = ?";
     conexion.query(sql, [propiedad_id], (error, result) => {
         if (error) {
@@ -357,7 +357,7 @@ router.put('/', (req, res) => {
             });
         }
 
-        // Si todos los campos están presentes, proceder con la actualización
+        // Si todos los campos están presentes, se actualiza
         const updateSql = "UPDATE propiedades SET num_habitaciones = ?, num_banos = ?, capacidad = ?, tamano_m2 = ?, precio_renta = ?, tipo_id = ?, descripcion = ? WHERE ID = ?";
         const updateValues = [num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion, propiedad_id];
         
@@ -459,7 +459,6 @@ router.delete('/', (req, res) => {
                     })
                 })
             })
-            // Eliminar la propiedad de la base de datos
         });
     });
 });
