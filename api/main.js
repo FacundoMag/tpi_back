@@ -24,7 +24,7 @@ router.use('/propiedades', function(req, res, next) {
 
     // Verificar token para otros métodos
     const token = req.headers.authorization;
-    console.log('Token recibido:', token);  // Asegúrate de ver el token en los logs
+    console.log('Token recibido:', token); 
 
     if (!token) {
         console.error('Sin token');
