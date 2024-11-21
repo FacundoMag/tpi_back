@@ -59,7 +59,24 @@ router.get('/reservaciones_propietario', (req, res) => {
     const token = req.headers.authorization;
     const verificacionToken = verificarToken(token, TOKEN_SECRET);
     const usuario_id = verificacionToken?.data?.usuario_id;
-    const sql = 'SELECT * FROM reservaciones WHERE propietario_id = ?';
+    const sql = `
+        SELECT 
+            reservaciones.id, 
+            reservaciones.propiedad_id, 
+            reservaciones.propietario_id, 
+            reservaciones.inquilino_id, 
+            reservaciones.fecha_inicio, 
+            reservaciones.fecha_fin, 
+            reservaciones.fecha_reserva, 
+            reservaciones.monto_total, 
+            propiedades.direccion 
+        FROM 
+            reservaciones 
+        JOIN 
+            propiedades ON propiedades.propietario_id = reservaciones.propietario_id 
+        WHERE 
+            reservaciones.propietario_id = ?
+    `;
     conexion.query(sql, [usuario_id], (err, results) => {
         if (err) {
             return res.status(500).json({ error: err.message });
