@@ -229,8 +229,6 @@ GROUP BY
         });
     });
     
-    
-
     router.get('/mis_propiedades', function(req, res, next) {
         const token = req.headers.authorization;
         
@@ -274,7 +272,7 @@ GROUP BY
             JOIN 
                 tipo_de_propiedad ON tipo_de_propiedad.id = propiedades.tipo_id 
             WHERE 
-                propiedades.propietario_id = 18;
+                propiedades.propietario_id = ?;
         `;
     
         // Ejecutar la consulta a la base de datos
@@ -303,7 +301,4 @@ GROUP BY
         });
     });
     
-    
-
-
 module.exports = router;
