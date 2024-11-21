@@ -211,84 +211,76 @@ GROUP BY
         });
     });
     
-    router.get('/mis_propiedades', function (req, res) {
+    router.get('/mis_propiedades', function(req, res, next) {
         const token = req.headers.authorization;
-    
+        
         // Verificar si el token está presente
         if (!token) {
-            console.error('Acceso denegado: Token faltante');
+            console.error('Acceso denegado: token faltante');
             return res.status(403).json({
                 status: 'error',
-                error: 'Acceso denegado: Token faltante'
+                error: 'acceso denegado'
             });
         }
     
-        try {
-            // Verificar y decodificar el token
-            const verificacionToken = verificarToken(token, TOKEN_SECRET);
-            if (!verificacionToken || !verificacionToken.data || !verificacionToken.data.usuario_id) {
-                console.error('Token inválido o mal formado');
-                return res.status(403).json({
+        // Verificar y decodificar el token
+        const verificacionToken = verificarToken(token, TOKEN_SECRET);
+        if (!verificacionToken || !verificacionToken.data || !verificacionToken.data.usuario_id) {
+            console.error('Token inválido');
+            return res.status(403).json({
+                status: "error",
+                error: "token inválido"
+            });
+        }
+    
+        // Obtener el usuario_id del token
+        const usuario_id = verificacionToken.data.usuario_id;
+    
+        // Consulta SQL para seleccionar una imagen por propiedad
+        const sql = `
+            SELECT 
+                propiedades.id, 
+                (SELECT url FROM imagenes WHERE imagenes.propiedad_id = propiedades.id LIMIT 1) AS url, 
+                propiedades.precio_renta, 
+                ciudades.nombre AS ciudad, 
+                propiedades.direccion, 
+                propiedades.num_habitaciones, 
+                propiedades.num_banos, 
+                tipo_de_propiedad.nombre AS tipo 
+            FROM 
+                propiedades 
+            JOIN 
+                ciudades ON propiedades.ciudad_id = ciudades.id 
+            JOIN 
+                tipo_de_propiedad ON tipo_de_propiedad.id = propiedades.tipo_id 
+            WHERE 
+                propiedades.propietario_id = ?;
+        `;
+    
+        // Ejecutar la consulta a la base de datos
+        conexion.query(sql, [usuario_id], function(error, result) {
+            if (error) {
+                console.error('Error en la consulta de propiedades:', error);
+                return res.status(500).json({
                     status: 'error',
-                    error: 'Token inválido o mal formado'
+                    error: 'Error al obtener propiedades'
+                });
+            }
+            
+            // Si no hay propiedades, enviar un mensaje adecuado
+            if (result.length === 0) {
+                return res.status(404).json({
+                    status: 'error',
+                    error: 'No tiene ninguna propiedad registrada'
                 });
             }
     
-            // Obtener el usuario_id del token
-            const usuario_id = verificacionToken.data.usuario_id;
-    
-            // Consulta SQL
-            const sql = `
-                SELECT 
-                    p.id, 
-                    (SELECT url FROM imagenes WHERE imagenes.propiedad_id = p.id LIMIT 1) AS url, 
-                    p.precio_renta, 
-                    c.nombre AS ciudad, 
-                    p.direccion, 
-                    p.num_habitaciones, 
-                    p.num_banos, 
-                    t.nombre AS tipo 
-                FROM 
-                    propiedades AS p
-                JOIN 
-                    ciudades AS c ON p.ciudad_id = c.id 
-                JOIN 
-                    tipo_de_propiedad AS t ON t.id = p.tipo_id 
-                WHERE 
-                    p.propietario_id = ?;
-            `;
-    
-            // Ejecutar la consulta a la base de datos
-            conexion.query(sql, [usuario_id], function (error, result) {
-                if (error) {
-                    console.error('Error en la consulta de propiedades:', error);
-                    return res.status(500).json({
-                        status: 'error',
-                        error: 'Error al obtener propiedades'
-                    });
-                }
-    
-                // Si no hay propiedades, enviar un mensaje adecuado
-                if (result.length === 0) {
-                    return res.status(404).json({
-                        status: 'error',
-                        error: 'No tiene ninguna propiedad registrada'
-                    });
-                }
-    
-                // Enviar el resultado
-                res.json({
-                    status: 'success',
-                    result
-                });
+            // Enviar el resultado
+            res.json({
+                status: 'success',
+                result
             });
-        } catch (error) {
-            console.error('Error al procesar el token:', error);
-            return res.status(400).json({
-                status: 'error',
-                error: 'Token inválido o mal formado'
-            });
-        }
+        });
     });
     
     
