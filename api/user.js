@@ -80,60 +80,78 @@ router.post('/inicio_sesion', function(req, res, next) {
 });
 
 
-router.put('/mi_perfil', function(req, res, next){
-    const token = req.headers.authorization;
-    if(!token){
-        console.error('acceso denegado');
-        res.status(403).res.json({
-            status: 'error', error: 'acceso denegado'
-        })
-    } 
+router.get('/mi_perfil', function (req, res, next) {
+    const token = req.headers.authorization?.split(' ')[1]; // Extraer token
+    if (!token) {
+        return res.status(403).json({ status: 'error', error: 'Token no proporcionado' });
+    }
 
     const verificacionToken = verificarToken(token, TOKEN_SECRET);
-        if(verificacionToken?.data?.usuario_id === undefined){
-                console.error('token invalido');
-                return res.json({
-                    status: "error",
-                    error: "token invalido"
-                })
+    if (!verificacionToken || !verificacionToken.data || !verificacionToken.data.usuario_id) {
+        return res.status(403).json({ status: 'error', error: 'Token inválido' });
+    }
+
+    const usuario_id = verificacionToken.data.usuario_id;
+    const sql = "SELECT nombre, apellido, telefono, correo FROM usuarios WHERE id = ?";
+    conexion.query(sql, [usuario_id], function (error, result) {
+        if (error) {
+            return res.status(500).json({ status: 'error', error: 'Error al obtener perfil' });
+        }
+        if (result.length === 0) {
+            return res.status(404).json({ status: 'error', error: 'Usuario no encontrado' });
+        }
+        res.json({ status: 'ok', result: result[0] });
+    });
+});
+
+
+router.put('/mi_perfil', function (req, res) {
+    const tokenHeader = req.headers.authorization;
+
+    // Verificar si el token está presente y eliminar "Bearer "
+    const token = tokenHeader?.startsWith("Bearer ") ? tokenHeader.slice(7) : null;
+    if (!token) {
+        return res.status(403).json({
+            status: 'error',
+            error: 'Acceso denegado: token no proporcionado'
+        });
+    }
+
+    const verificacionToken = verificarToken(token, TOKEN_SECRET);
+    if (!verificacionToken || !verificacionToken.data || !verificacionToken.data.usuario_id) {
+        return res.status(401).json({
+            status: 'error',
+            error: 'Token inválido'
+        });
+    }
+
+    const usuarioIdToken = verificacionToken.data.usuario_id;
+    const { nombre, apellido, telefono, correo } = req.body;
+
+    if (!nombre || !apellido || !telefono || !correo) {
+        return res.status(400).json({
+            status: 'error',
+            error: 'Todos los campos son obligatorios'
+        });
+    }
+
+    const sql = "UPDATE usuarios SET nombre = ?, apellido = ?, telefono = ?, correo = ? WHERE id = ?";
+    conexion.query(sql, [nombre, apellido, telefono, correo, usuarioIdToken], function (error, result) {
+        if (error) {
+            return res.status(500).json({
+                status: 'error',
+                error: 'Ocurrió un error al actualizar los datos'
+            });
         }
 
-    
+        res.json({
+            status: 'ok',
+            message: 'Datos actualizados correctamente'
+        });
+    });
+});
 
-     const usuarioIdToken = verificacionToken?.data?.usuario_id;
 
-        const {nombre, apellido, telefono, correo} = req.body;
-    
-        const sql = "UPDATE usuarios SET nombre = ?, apellido = ?, telefono = ?, correo = ? WHERE id = ?";
-        conexion.query(sql, [nombre, apellido, telefono, correo, usuarioIdToken], function(error, result){
-            if(error){
-                console.error(error);
-                return res.status(500).send('ocurrio un error')
-            }
-            res.json({
-                status: 'ok',
-                message: 'datos actualizados correctamente'
-            })
-        })
-    })
-
-    router.get('/mi_perfil', function(req, res, next){
-        const token = req.headers.authorization;
-        const verificacionToken = verificarToken(token, TOKEN_SECRET);
-        const id = verificacionToken?.data?.usuario_id;
-
-        const sql = "SELECT nombre, apellido, telefono, correo FROM usuarios WHERE id = ?";
-        conexion.query(sql, [id], function(error, result){
-            if(error){
-                return res.status(400).json({
-                    error: 'error al traer los datos'
-                })
-            }
-            res.json({
-                result
-            })
-        })
-    })
 
     router.post('/favoritos', function (req, res, next) {
         const token = req.headers.authorization;
