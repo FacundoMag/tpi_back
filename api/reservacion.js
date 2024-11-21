@@ -73,7 +73,7 @@ router.get('/reservaciones_propietario', (req, res) => {
         FROM 
             reservaciones 
         JOIN 
-            propiedades ON propiedades.propietario_id = reservaciones.propietario_id 
+            propiedades ON propiedades.id = reservaciones.propiedad_id 
         WHERE 
             reservaciones.propietario_id = ?
     `;
