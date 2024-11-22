@@ -125,34 +125,38 @@ router.post('/', async (req, res) => {
             });
         });
 
-        const { correo_inquilino, nombre_inquilino, correo_propietario, nombre_propietario, direccion } = await obtenerCorreos(inquilino_id, propietario_id);
+        const { correo_inquilino, nombre_inquilino, correo_propietario, nombre_propietario, direccion } = await obtenerDetallesReservacion(inquilino_id, propietario_id, propiedad_id);
 
         await Promise.all([
             enviarCorreo(
                 correo_inquilino,
                 'Reservación Creada',
-                `Hola ${nombre_inquilino},
-
-                Su reservación ha sido creada exitosamente.
-
-                Dirección: ${direccion}
-                Fecha: ${fecha_inicio} hasta ${fecha_fin}
-
-                Monto: ${monto_total}
                 `
+                Su reservación ha sido creada exitosamente.<br><br>
+                <strong>Dirección:</strong> ${direccion}<br>
+                <strong>Fecha:</strong> ${fecha_inicio} hasta ${fecha_fin}<br>
+                <strong>Monto:</strong> ${monto_total}
+                `,
+                nombre_inquilino,
+                direccion,
+                fecha_inicio,
+                fecha_fin,
+                monto_total
             ),
             enviarCorreo(
                 correo_propietario,
                 'Nueva Reservación',
-                `Hola ${nombre_propietario},
-
-                Se creó una reservación en su propiedad:
-
-                Dirección: ${direccion}
-                Fecha: ${fecha_inicio} hasta ${fecha_fin}
-
-                Monto: ${monto_total}
                 `
+                Se creó una reservación en su propiedad.<br><br>
+                <strong>Dirección:</strong> ${direccion}<br>
+                <strong>Fecha:</strong> ${fecha_inicio} hasta ${fecha_fin}<br>
+                <strong>Monto:</strong> ${monto_total}
+                `,
+                nombre_propietario,
+                direccion,
+                fecha_inicio,
+                fecha_fin,
+                monto_total
             )
         ]);
 
@@ -185,28 +189,32 @@ router.put('/', async (req, res) => {
             enviarCorreo(
                 correo_inquilino,
                 'Reservación Actualizada',
-                `Hola ${nombre_inquilino},
-
-                Su reservación ha sido actualizada exitosamente.
-
-                Dirección: ${direccion}
-                Fecha: ${fecha_inicio} hasta ${fecha_fin}
-
-                Monto: ${monto_total}
                 `
+                Su reservación ha sido actualizada exitosamente.<br><br>
+                <strong>Dirección:</strong> ${direccion}<br>
+                <strong>Fecha:</strong> ${fecha_inicio} hasta ${fecha_fin}<br>
+                <strong>Monto:</strong> ${monto_total}
+                `,
+                nombre_inquilino,
+                direccion,
+                fecha_inicio,
+                fecha_fin,
+                monto_total
             ),
             enviarCorreo(
                 correo_propietario,
                 'Reservación Actualizada',
-                `Hola ${nombre_propietario},
-
-                El inquilino ${nombre_inquilino} ha actualizado su reservación para su propiedad:
-
-                Dirección: ${direccion}
-                Fecha: ${fecha_inicio} hasta ${fecha_fin}
-
-                Monto: ${monto_total}
                 `
+                El inquilino ${nombre_inquilino} ha actualizado su reservación para su propiedad.<br><br>
+                <strong>Dirección:</strong> ${direccion}<br>
+                <strong>Fecha:</strong> ${fecha_inicio} hasta ${fecha_fin}<br>
+                <strong>Monto:</strong> ${monto_total}
+                `,
+                nombre_propietario,
+                direccion,
+                fecha_inicio,
+                fecha_fin,
+                monto_total
             )
         ]);
 
@@ -252,7 +260,12 @@ router.delete('/', async (req, res) => {
                 `Hola ${nombre_inquilino},
 
                 Tu reservación en la propiedad en ${direccion} ha sido eliminada.
-                `
+                `,
+                nombre_inquilino,
+                direccion,
+                '',
+                '',
+                ''
             ),
             enviarCorreo(
                 correo_propietario,
@@ -260,7 +273,12 @@ router.delete('/', async (req, res) => {
                 `Hola ${nombre_propietario},
 
                 La reservación en su propiedad en ${direccion} ha sido eliminada.
-                `
+                `,
+                nombre_propietario,
+                direccion,
+                '',
+                '',
+                ''
             )
         ]);
 
