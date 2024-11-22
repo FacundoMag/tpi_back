@@ -138,7 +138,7 @@ router.get('/propiedad', (req, res) => {
             propiedades.propietario_id, 
             usuarios.telefono AS telefono_propietario,
             usuarios.nombre,
-            usuarios.apellido 
+            usuarios.apellido,
             propiedades.direccion, 
             ciudades.nombre AS ciudades, 
             propiedades.num_habitaciones, 
