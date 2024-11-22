@@ -18,11 +18,12 @@ router.get('/', (req, res) => {
     });
 });
 
-// Obtener una reservación por ID
+// Obtener las reservaciones de un inquilino
 router.get('/mis_reservaciones', (req, res) => {
     const token = req.headers.authorization;
     const verificacionToken = verificarToken(token, TOKEN_SECRET);
     const usuario_id = verificacionToken?.data?.usuario_id;
+
     const sql = `
         SELECT 
             reservaciones.id, 
@@ -53,10 +54,12 @@ router.get('/mis_reservaciones', (req, res) => {
     });
 });
 
+// Obtener las reservaciones de un propietario
 router.get('/reservaciones_propietario', (req, res) => {
     const token = req.headers.authorization;
     const verificacionToken = verificarToken(token, TOKEN_SECRET);
     const usuario_id = verificacionToken?.data?.usuario_id;
+
     const sql = `
         SELECT 
             reservaciones.id, 
@@ -79,6 +82,7 @@ router.get('/reservaciones_propietario', (req, res) => {
         WHERE 
             reservaciones.propietario_id = ?;
     `;
+
     conexion.query(sql, [usuario_id], (err, results) => {
         if (err) {
             return res.status(500).json({ error: err.message });
@@ -90,7 +94,7 @@ router.get('/reservaciones_propietario', (req, res) => {
     });
 });
 
-// Crear una reservación
+// Crear una nueva reservación
 router.post('/', async (req, res) => {
     const token = req.headers.authorization;
 
@@ -137,9 +141,6 @@ router.post('/', async (req, res) => {
                 'Reservación Creada',
                 `
                 Su reservación ha sido creada exitosamente.<br><br>
-                <strong>Dirección:</strong> ${direccion}<br>
-                <strong>Fecha:</strong> ${fecha_inicio} hasta ${fecha_fin}<br>
-                <strong>Monto:</strong> ${monto_total}
                 `,
                 nombre_inquilino,
                 direccion,
@@ -175,7 +176,7 @@ router.post('/', async (req, res) => {
 router.put('/', async (req, res) => {
     const { id } = req.query;
     const { propiedad_id, propietario_id, inquilino_id, fecha_inicio, fecha_fin, fecha_reserva, monto_total } = req.body;
-    const sql = 'UPDATE reservaciones SET propiedad_id = ?, fecha_inicio = ?, fecha_fin = ?, fecha_reserva = ?, monto_total = ? WHERE id = ?';
+    const sql = 'UPDATE reservaciones SET propiedad_id = ?, propietario_id = ?, inquilino_id = ?, fecha_inicio = ?, fecha_fin = ?, fecha_reserva = ?, monto_total = ? WHERE id = ?';
 
     try {
         await new Promise((resolve, reject) => {

@@ -3,13 +3,13 @@ const router = express.Router();
 const conexion = require('../db/conexion');
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs')
+const fs = require('fs');
 const { verificarToken } = require('@damianegreco/hashpass');
 require('dotenv').config();
 
 const TOKEN_SECRET = process.env.TOKEN_SECRET;
 
-// Configuración de almacenamiento
+// Configuración de almacenamiento de imágenes con Multer
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, 'public/images');
@@ -20,9 +20,8 @@ const storage = multer.diskStorage({
     }
 });
 
-// Filtrado de archivos
+// Filtrado de archivos (solo imágenes)
 const fileFilter = (req, file, cb) => {
-    // Aceptar solo archivos de imagen
     if (file.mimetype.startsWith('image/')) {
         cb(null, true);
     } else {
@@ -35,28 +34,48 @@ const upload = multer({
     storage: storage,
     fileFilter: fileFilter,
     limits: {
-        fileSize: 1024 * 1024 * 5, // Limita el tamaño del archivo a 5MB
+        fileSize: 1024 * 1024 * 5, // Limitar el tamaño del archivo a 5MB
     },
 }).array('archivos', 10); // Aceptar un máximo de 10 archivos 
 
-router.get('/', function (req, res, next) {
-    const sql = "SELECT propiedades.id, GROUP_CONCAT(imagenes.url) AS imagenes, propiedades.precio_renta, propiedades.direccion, ciudades.nombre AS ciudad, propiedades.num_habitaciones, propiedades.num_banos, tipo_de_propiedad.nombre AS tipo FROM propiedades JOIN tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id JOIN ciudades ON propiedades.ciudad_id = ciudades.id JOIN imagenes ON propiedades.id = imagenes.propiedad_id GROUP BY propiedades.id";
-  
-    conexion.query(sql, function (err, propiedadesConimg) {
-        if (err) {
-            return res.status(500).json({ error: err.message })
-        }
-       propiedadesConimg = propiedadesConimg.map(propiedad => ({
-        ...propiedad,
-        imagenes: propiedad.imagenes ? propiedad.imagenes.split(',') : []
-       }))
-       res.json(
-        propiedadesConimg
-       )
-    })
-})
+// Ruta para obtener todas las propiedades con sus imágenes
+router.get('/', function(req, res, next) {
+    const sql = `
+        SELECT 
+            propiedades.id, 
+            GROUP_CONCAT(imagenes.url) AS imagenes, 
+            propiedades.precio_renta, 
+            propiedades.direccion, 
+            ciudades.nombre AS ciudad, 
+            propiedades.num_habitaciones, 
+            propiedades.num_banos, 
+            tipo_de_propiedad.nombre AS tipo 
+        FROM 
+            propiedades 
+        JOIN 
+            tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id 
+        JOIN 
+            ciudades ON propiedades.ciudad_id = ciudades.id 
+        JOIN 
+            imagenes ON propiedades.id = imagenes.propiedad_id 
+        GROUP BY 
+            propiedades.id
+    `;
 
-router.get('/buscador', function (req, res, next) {
+    conexion.query(sql, function(err, propiedadesConimg) {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        propiedadesConimg = propiedadesConimg.map(propiedad => ({
+            ...propiedad,
+            imagenes: propiedad.imagenes ? propiedad.imagenes.split(',') : []
+        }));
+        res.json(propiedadesConimg);
+    });
+});
+
+// Ruta para buscar propiedades con filtros
+router.get('/buscador', function(req, res, next) {
     const { ciudad_id, tipo_id } = req.query;
 
     let sql = `
@@ -76,7 +95,8 @@ router.get('/buscador', function (req, res, next) {
         JOIN 
             tipo_de_propiedad ON propiedades.tipo_id = tipo_de_propiedad.id 
         JOIN 
-            imagenes ON propiedades.id = imagenes.propiedad_id`;
+            imagenes ON propiedades.id = imagenes.propiedad_id
+    `;
 
     const filtros = [];
     const condiciones = [];
@@ -97,32 +117,26 @@ router.get('/buscador', function (req, res, next) {
 
     sql += " GROUP BY propiedades.id";
 
-    conexion.query(sql, filtros, function (error, propiedadesConimg) {
+    conexion.query(sql, filtros, function(error, propiedadesConimg) {
         if (error) {
             console.log(error);
-            return res.status(500).json({
-                error: "Error al realizar la búsqueda"
-            });
+            return res.status(500).json({ error: "Error al realizar la búsqueda" });
         }
         propiedadesConimg = propiedadesConimg.map(propiedad => ({
             ...propiedad,
             imagenes: propiedad.imagenes ? propiedad.imagenes.split(',') : []
-           }))
-           res.json(
-            propiedadesConimg
-           ) 
-       
+        }));
+        res.json(propiedadesConimg);
     });
 });
 
+// Ruta para obtener detalles de una propiedad específica
 router.get('/propiedad', (req, res) => {
     const { id } = req.query;
     const sql = `
         SELECT 
             propiedades.propietario_id, 
-            usuarios.telefono AS telefono_propietario,
-            usuarios.nombre, 
-            usuarios.apellido, 
+            usuarios.telefono AS telefono_propietario, 
             propiedades.direccion, 
             ciudades.nombre AS ciudades, 
             propiedades.num_habitaciones, 
@@ -131,7 +145,9 @@ router.get('/propiedad', (req, res) => {
             propiedades.tamano_m2, 
             propiedades.precio_renta, 
             tipo_de_propiedad.nombre AS tipo_de_propiedad, 
-            propiedades.descripcion FROM propiedades 
+            propiedades.descripcion 
+        FROM 
+            propiedades 
         JOIN 
             ciudades ON propiedades.ciudad_id = ciudades.id 
         JOIN 
@@ -140,91 +156,80 @@ router.get('/propiedad', (req, res) => {
             usuarios ON usuarios.id = propiedades.propietario_id 
         WHERE 
             propiedades.id = ?
-        `;
-
-    const sql2 = `
+    `;
+    const sql2 = "SELECT url FROM imagenes WHERE propiedad_id = ?";
+    const sql3 = `
         SELECT 
-            url 
+            usuarios.nombre AS usuarios, 
+            usuarios.apellido AS usuarios, 
+            resenas.comentario, 
+            resenas.valoracion 
         FROM 
-            imagenes 
+            resenas 
+        JOIN 
+            usuarios ON resenas.usuario_id = usuarios.id 
         WHERE 
-            propiedad_id = ?
-        `;
-
-    const sql3 = "SELECT usuarios.nombre AS usuarios, usuarios.apellido AS usuarios, resenas.comentario, resenas.valoracion FROM resenas JOIN usuarios ON resenas.usuario_id = usuarios.id WHERE resenas.propiedad_id = ?";
-    const sql4 = "SELECT servicios.servicio AS servicios FROM propiedades_servicios JOIN servicios ON propiedades_servicios.servicio_id = servicios.id WHERE propiedades_servicios.propiedad_id = ? ";
-    conexion.query(sql, [id], function (error, propiedad) {
+            resenas.propiedad_id = ?
+    `;
+    const sql4 = "SELECT servicios.servicio AS servicios FROM propiedades_servicios JOIN servicios ON propiedades_servicios.servicio_id = servicios.id WHERE propiedades_servicios.propiedad_id = ?";
+    
+    conexion.query(sql, [id], function(error, propiedad) {
         if (error) {
             console.log(error);
-            return res.status(403).json({
-                error: 'error al cargar la propiedad'
-            })
+            return res.status(403).json({ error: 'error al cargar la propiedad' });
         }
-        conexion.query(sql2, [id], function (error, urls) {
+        conexion.query(sql2, [id], function(error, urls) {
             if (error) {
-                console.log(error)
-                return res.status(403).json({
-                
-                    error: 'erro al cargar las urls'
-                })
+                console.log(error);
+                return res.status(403).json({ error: 'error al cargar las urls' });
             }
-            conexion.query(sql3, [id], function (error, reseñas) {
+            conexion.query(sql3, [id], function(error, reseñas) {
                 if (error) {
                     console.log(error);
-                    return res.status(401).json({
-                        error: 'error al cargar las reseñas'
-                    })
+                    return res.status(401).json({ error: 'error al cargar las reseñas' });
                 }
-                conexion.query(sql4, [id], function(error, servicios){
-                    if(error){
-                       console.log(error);
-                       return res.status(401).json({
-                        error: 'error al cargar los servicios'
-                       })
+                conexion.query(sql4, [id], function(error, servicios) {
+                    if (error) {
+                        console.log(error);
+                        return res.status(401).json({ error: 'error al cargar los servicios' });
                     }
                     res.json({
                         propiedad,
                         urls,
                         servicios,
                         reseñas
-                    })
-                })
-                
-            })
-        })
-    })
+                    });
+                });
+            });
+        });
+    });
 });
 
-router.get('/', function (req, res, next) {
-    const ciudadesSQL = "SELECT id, nombre FROM ciudad";
-    const tipoSQL = "SELECT id, nombre FROM tipo_propiedad";
+// Ruta para obtener listas de ciudades, tipos de propiedades y servicios
+router.get('/list', function(req, res, next) {
+    const ciudadesSQL = "SELECT id, nombre FROM ciudades";
+    const tipoSQL = "SELECT id, nombre FROM tipo_de_propiedad";
     const servicioSQL = "SELECT id, servicio FROM servicios";
-    conexion.query(ciudadesSQL, function (err, ciudades) {
-        if (err) {
-            return res.status(500).json({ error: "no se encontro ninguna ciudad" })
-        }
-        conexion.query(tipoSQL, function (error, tipo_propiedades) {
-            if (error) {
-                return res.status(500).json({
-                    error: "no se encontro ningun tipo de propiedad"
-                })
-            }
-            conexion.query(servicioSQL, function (error, servicios) {
-                if (error) {
-                    return res.status(500).json({
-                        error: "no se encontro ningun servicio"
-                    })
-                }
-                res.json({
-                    ciudades,
-                    tipo_propiedades,
-                    servicios
-                })
-            })
-        })
-    })
-})
 
+    conexion.query(ciudadesSQL, function(err, ciudades) {
+        if (err) {
+            return res.status(500).json({ error: "no se encontró ninguna ciudad" });
+        }
+        conexion.query(tipoSQL, function(error, tipo_propiedades) {
+            if (error) {
+                return res.status(500).json({ error: "no se encontró ningún tipo de propiedad" });
+            }
+            conexion.query(servicioSQL, function(error, servicios) {
+                if (error) {
+                    return res.status(500).json({ error: "no se encontró ningún servicio" });
+                }
+                res.json({ ciudades, tipo_propiedades, servicios });
+            });
+        });
+    });
+});
+
+// Ruta para crear una nueva propiedad
 router.post('/', upload, (req, res) => {
     const usuario_id = req.user_id;
     const { caracteristicas, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion } = req.body;
@@ -256,9 +261,11 @@ router.post('/', upload, (req, res) => {
     console.log('Datos recibidos:', { direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion });
     console.log('Servicios:', servicios);
 
-    const sqlPropiedad = `INSERT INTO propiedades 
-                          (propietario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion) 
-                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    const sqlPropiedad = `
+        INSERT INTO propiedades 
+        (propietario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
 
     conexion.query(sqlPropiedad, [usuario_id, direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion], (err, result) => {
         if (err) {
@@ -289,7 +296,7 @@ router.post('/', upload, (req, res) => {
                             imagenUrl: file.filename
                         }));
 
-                        const sqlImagen = `INSERT INTO imagenes (propiedad_id, url) VALUES (?, ?)`;
+                        const sqlImagen = "INSERT INTO imagenes (propiedad_id, url) VALUES (?, ?)";
 
                         const promises = imagenesSubidas.map(imagen => {
                             return new Promise((resolve, reject) => {
@@ -332,19 +339,14 @@ router.post('/', upload, (req, res) => {
     });
 });
 
-
-  
-// Ruta para editar una propiedad
+// Ruta para editar una propiedad existente
 router.put('/', (req, res) => {
     const { propiedad_id } = req.query;
-    console.log(req.body)
+    console.log(req.body);
     
     if (!propiedad_id) {
         console.error('Propiedad ID no proporcionado');
-        return res.status(400).json({
-            status: 'error',
-            error: 'Propiedad ID no proporcionado'
-        });
+        return res.status(400).json({ status: 'error', error: 'Propiedad ID no proporcionado' });
     }
 
     // Valida que todos los campos necesarios estén presentes
@@ -353,10 +355,7 @@ router.put('/', (req, res) => {
     
     if ([direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion].some((field) => (field === undefined || field === null))) {
         console.error('Faltan campos obligatorios');
-        return res.status(400).json({
-            status: 'error',
-            error: 'Todos los campos son obligatorios'
-        });
+        return res.status(400).json({ status: 'error', error: 'Todos los campos son obligatorios' });
     }
 
     // Realiza la consulta para obtener el propietario de la propiedad
@@ -364,18 +363,12 @@ router.put('/', (req, res) => {
     conexion.query(sql, [propiedad_id], (error, result) => {
         if (error) {
             console.error('Error en la base de datos:', error);
-            return res.status(500).json({
-                status: 'error',
-                error: 'Error en la base de datos'
-            });
+            return res.status(500).json({ status: 'error', error: 'Error en la base de datos' });
         }
 
         if (result.length === 0) {
             console.error('Propiedad no encontrada');
-            return res.status(404).json({
-                status: 'error',
-                error: 'Propiedad no encontrada'
-            });
+            return res.status(404).json({ status: 'error', error: 'Propiedad no encontrada' });
         }
 
         const user_id = result[0].propietario_id;
@@ -383,10 +376,7 @@ router.put('/', (req, res) => {
 
         if (req.user_id !== user_id) {
             console.error('No tienes permisos para modificar esta propiedad');
-            return res.status(403).json({
-                status: 'error',
-                error: 'No tienes permisos para modificar esta propiedad'
-            });
+            return res.status(403).json({ status: 'error', error: 'No tienes permisos para modificar esta propiedad' });
         }
 
         // Si todos los campos están presentes, se actualiza
@@ -396,21 +386,15 @@ router.put('/', (req, res) => {
         conexion.query(updateSql, updateValues, (updateError, updateResult) => {
             if (updateError) {
                 console.error('Error al actualizar la propiedad:', updateError);
-                return res.status(500).json({
-                    status: 'error',
-                    error: 'Error al actualizar la propiedad'
-                });
+                return res.status(500).json({ status: 'error', error: 'Error al actualizar la propiedad' });
             }
 
-            res.json({
-                status: 'success',
-                message: 'Propiedad actualizada correctamente'
-            });
+            res.json({ status: 'success', message: 'Propiedad actualizada correctamente' });
         });
     });
 });
 
-
+// Ruta para eliminar una propiedad
 router.delete('/', (req, res) => {
     const { id } = req.query;
 
@@ -425,14 +409,11 @@ router.delete('/', (req, res) => {
     const sql4 = "DELETE FROM resenas WHERE propiedad_id = ?";
     const sql5 = "DELETE FROM propiedades WHERE id = ?";
     
-
     // Obtener las imágenes asociadas a la propiedad antes de eliminarla
     conexion.query(imagenSQL, [id], function (error, imagenes) {
         if (error) {
             console.error('Error al obtener las imágenes:', error);
-            return res.status(500).json({
-                error: 'Error al obtener las imágenes'
-            });
+            return res.status(500).json({ error: 'Error al obtener las imágenes' });
         }
 
         // Si existen imágenes, proceder a eliminarlas del sistema de archivos
@@ -457,54 +438,58 @@ router.delete('/', (req, res) => {
                 console.error('Error al eliminar las imágenes de la base de datos:', err);
                 return res.status(500).json({ error: 'Error al eliminar las imágenes de la base de datos' });
             }
-            conexion.query(sql, [id], function(error, result){
-                if(error){
-                    console.error('Error al eliminar la propiedad de la tabla propiedades_servicios')
-                    return res.status(406).json({ error: 'Error al eliminar la propiedad de la tabla propiedades_servicios'})
+
+            // Eliminar la propiedad de la tabla propiedades_servicios
+            conexion.query(sql, [id], function(error, result) {
+                if (error) {
+                    console.error('Error al eliminar la propiedad de la tabla propiedades_servicios');
+                    return res.status(406).json({ error: 'Error al eliminar la propiedad de la tabla propiedades_servicios' });
                 }
-                conexion.query(sql3, [id], function(error, result){
-                    if(error){
+
+                // Eliminar la propiedad de la tabla favoritos
+                conexion.query(sql3, [id], function(error, result) {
+                    if (error) {
                         console.error('Error al eliminar la propiedad de la tabla favoritos');
-                        return res.status(503).json({error: 'Error al eliminar la propiedad de la tabla favoritos'});
+                        return res.status(503).json({ error: 'Error al eliminar la propiedad de la tabla favoritos' });
                     }
-                    conexion.query(sql4, [id], function(error, result){
-                        if(error){
+
+                    // Eliminar la propiedad de la tabla resenas
+                    conexion.query(sql4, [id], function(error, result) {
+                        if (error) {
                             console.error('Error al eliminar la propiedad de la tabla resenas');
-                            return res.status(503).json({error: 'Error al eliminar la propiedad de la tabla resenas'});
+                            return res.status(503).json({ error: 'Error al eliminar la propiedad de la tabla resenas' });
                         }
+
+                        // Eliminar la propiedad de la tabla propiedades
                         conexion.query(sql5, [id], function (error, result) {
                             if (error) {
                                 console.error('Error al eliminar la propiedad:', error);
-                                return res.status(500).json({
-                                    error: 'Error al eliminar la propiedad'
-                                });
+                                return res.status(500).json({ error: 'Error al eliminar la propiedad' });
                             }
-            
+
                             if (result.affectedRows === 0) {
                                 return res.status(404).json({ message: 'Propiedad no encontrada' });
                             }
-            
+
                             // Respuesta exitosa
                             res.json({ message: 'Propiedad eliminada con éxito' });
                         });
-
-                    })
-                })
-            })
+                    });
+                });
+            });
         });
     });
 });
 
-router.post('/propiedad/resena', function (req, res, next) {
+// Ruta para crear una reseña de una propiedad
+router.post('/propiedad/resena', function (req, res) {
     const { propiedad_id } = req.query;
     const token = req.headers.authorization;
     const { comentario, puntuacion } = req.body;
 
     if (token === undefined || token === null) {
         console.error('sin token');
-        res.status(403).res.json({
-            status: 'error', error: 'sin token'
-        })
+        return res.status(403).json({ status: 'error', error: 'sin token' });
     }
 
     const verificacionToken = verificarToken(token, TOKEN_SECRET);
@@ -514,15 +499,10 @@ router.post('/propiedad/resena', function (req, res, next) {
     conexion.query(sql, [usuario_id, propiedad_id, comentario, puntuacion], function (error, result) {
         if (error) {
             console.log(error);
-            return res.status(500).json({
-                error: 'error al crear la reseña'
-            })
+            return res.status(500).json({ error: 'error al crear la reseña' });
         }
-        res.status(200).json({
-            message: 'reseña creada exitosamente',
-            result
-        })
-    })
-})
+        res.status(200).json({ message: 'reseña creada exitosamente', result });
+    });
+});
 
 module.exports = router;
