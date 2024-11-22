@@ -25,7 +25,7 @@ const fileFilter = (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
         cb(null, true);
     } else {
-        cb(new Error('Not an image! Please upload only images.'), false);
+        cb(new Error('No es una imagen, solo se permiten imagenes.'), false);
     }
 };
 
