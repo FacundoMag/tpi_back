@@ -350,9 +350,10 @@ router.put('/', (req, res) => {
     }
 
     // Valida que todos los campos necesarios estén presentes
-    const { num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion } = req.body;
+    const {direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion } = req.body;
     
-    if ([num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion].some((field) => (field === undefined || field === null))) {
+    
+    if ([direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion].some((field) => (field === undefined || field === null))) {
         console.error('Faltan campos obligatorios');
         return res.status(400).json({ status: 'error', error: 'Todos los campos son obligatorios' });
     }
@@ -379,8 +380,8 @@ router.put('/', (req, res) => {
         }
 
         // Si todos los campos están presentes, se actualiza
-        const updateSql = "UPDATE propiedades SET num_habitaciones = ?, num_banos = ?, capacidad = ?, tamano_m2 = ?, precio_renta = ?, tipo_id = ?, descripcion = ? WHERE ID = ?";
-        const updateValues = [num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion, propiedad_id];
+        const updateSql = "UPDATE propiedades SET direccion = ?, ciudad_id = ?, num_habitaciones = ?, num_banos = ?, capacidad = ?, tamano_m2 = ?, precio_renta = ?, tipo_id = ?, descripcion = ? WHERE ID = ?";
+        const updateValues = [direccion, ciudad_id, num_habitaciones, num_banos, capacidad, tamano_m2, precio_renta, tipo_id, descripcion, propiedad_id];
         
         conexion.query(updateSql, updateValues, (updateError, updateResult) => {
             if (updateError) {
