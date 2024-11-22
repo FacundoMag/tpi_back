@@ -41,7 +41,7 @@ const enviarCorreo = (destinatarios, asunto, mensaje, nombre, direccion, fecha_i
                             </tr>
                             <tr style="background-color: #f2f2f2;">
                                 <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Monto</th>
-                                <td style="border: 1px solid #ddd; padding: 8px;">${monto_total}</td>
+                                <td style="border: 1px solid #ddd; padding: 8px;">$${monto_total}</td>
                             </tr>
                         </table>
                     </div>
