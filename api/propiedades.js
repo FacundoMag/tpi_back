@@ -136,7 +136,9 @@ router.get('/propiedad', (req, res) => {
     const sql = `
         SELECT 
             propiedades.propietario_id, 
-            usuarios.telefono AS telefono_propietario, 
+            usuarios.telefono AS telefono_propietario,
+            usuarios.nombre,
+            usuarios.apellido,
             propiedades.direccion, 
             ciudades.nombre AS ciudades, 
             propiedades.num_habitaciones, 
