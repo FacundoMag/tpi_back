@@ -67,13 +67,17 @@ router.get('/reservaciones_propietario', (req, res) => {
             reservaciones.fecha_fin, 
             reservaciones.fecha_reserva, 
             reservaciones.monto_total, 
-            propiedades.direccion 
+            propiedades.direccion, 
+            usuarios.nombre, 
+            usuarios.apellido 
         FROM 
             reservaciones 
         JOIN 
             propiedades ON propiedades.id = reservaciones.propiedad_id 
+        JOIN 
+            usuarios ON reservaciones.inquilino_id = usuarios.id 
         WHERE 
-            reservaciones.propietario_id = ?
+            reservaciones.propietario_id = ?;
     `;
     conexion.query(sql, [usuario_id], (err, results) => {
         if (err) {
