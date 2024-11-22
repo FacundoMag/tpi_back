@@ -49,24 +49,25 @@ const enviarCorreo = (destinatarios, asunto, mensaje) => {
     })
 };
 
-
-// Función para obtener correos de propietario e inquilino
+// Función para obtener correos y nombres de propietario e inquilino
 const obtenerCorreos = (inquilino_id, propietario_id) => {
     return new Promise((resolve, reject) => {
         const sql = `
-            SELECT u1.correo AS correo_inquilino, u2.correo AS correo_propietario 
-            FROM usuarios u1, usuarios u2 
+            SELECT u1.correo AS correo_inquilino, u1.nombre AS nombre_inquilino,
+                   u2.correo AS correo_propietario, u2.nombre AS nombre_propietario
+            FROM usuarios u1, usuarios u2
             WHERE u1.id = ? AND u2.id = ?`;
-        
+
         conexion.query(sql, [inquilino_id, propietario_id], (err, result) => {
             if (err || result.length === 0) {
-                return reject('Error al obtener correos');
+                return reject('Error al obtener correos y nombres');
             }
-            // Destructura correctamente los correos
-            const { correo_inquilino, correo_propietario } = result[0];
-            resolve({ correo_inquilino, correo_propietario });
+            // Destructura correctamente los correos y nombres
+            const { correo_inquilino, nombre_inquilino, correo_propietario, nombre_propietario } = result[0];
+            resolve({ correo_inquilino, nombre_inquilino, correo_propietario, nombre_propietario });
         });
     });
 };
 
 module.exports = { enviarCorreo, obtenerCorreos };
+

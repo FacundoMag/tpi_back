@@ -23,7 +23,25 @@ router.get('/mis_reservaciones', (req, res) => {
     const token = req.headers.authorization;
     const verificacionToken = verificarToken(token, TOKEN_SECRET);
     const usuario_id = verificacionToken?.data?.usuario_id;
-    const sql = 'SELECT * FROM reservaciones WHERE inquilino_id = ?';
+    const sql = `
+        SELECT 
+            reservaciones.id, 
+            reservaciones.propiedad_id, 
+            reservaciones.propietario_id, 
+            reservaciones.inquilino_id, 
+            reservaciones.fecha_inicio, 
+            reservaciones.fecha_fin, 
+            reservaciones.fecha_reserva, 
+            reservaciones.monto_total, 
+            propiedades.direccion 
+        FROM 
+            reservaciones 
+        JOIN 
+            propiedades ON reservaciones.propiedad_id = propiedades.id 
+        WHERE 
+            inquilino_id = ?
+    `;
+
     conexion.query(sql, [usuario_id], (err, results) => {
         if (err) {
             return res.status(500).json({ error: err.message });
@@ -31,9 +49,40 @@ router.get('/mis_reservaciones', (req, res) => {
         if (results.length === 0) {
             return res.status(404).json({ message: 'Reservación no encontrada' });
         }
-        res.json({
-            results
-        });
+        res.json({ results });
+    });
+});
+
+router.get('/reservaciones_propietario', (req, res) => {
+    const token = req.headers.authorization;
+    const verificacionToken = verificarToken(token, TOKEN_SECRET);
+    const usuario_id = verificacionToken?.data?.usuario_id;
+    const sql = `
+        SELECT 
+            reservaciones.id, 
+            reservaciones.propiedad_id, 
+            reservaciones.propietario_id, 
+            reservaciones.inquilino_id, 
+            reservaciones.fecha_inicio, 
+            reservaciones.fecha_fin, 
+            reservaciones.fecha_reserva, 
+            reservaciones.monto_total, 
+            propiedades.direccion 
+        FROM 
+            reservaciones 
+        JOIN 
+            propiedades ON propiedades.id = reservaciones.propiedad_id 
+        WHERE 
+            reservaciones.propietario_id = ?
+    `;
+    conexion.query(sql, [usuario_id], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        if (results.length === 0) {
+            return res.status(404).json({ message: 'Reservación no encontrada' });
+        }
+        res.json({ results });
     });
 });
 
@@ -76,18 +125,34 @@ router.post('/', async (req, res) => {
             });
         });
 
-        const { correo_inquilino, correo_propietario } = await obtenerCorreos(inquilino_id, propietario_id);
+        const { correo_inquilino, nombre_inquilino, correo_propietario, nombre_propietario, direccion } = await obtenerCorreos(inquilino_id, propietario_id);
 
         await Promise.all([
             enviarCorreo(
                 correo_inquilino,
                 'Reservación Creada',
-                `Su reservación para la propiedad ID: ${propiedad_id} ha sido creada exitosamente.`
+                `Hola ${nombre_inquilino},
+
+                Su reservación ha sido creada exitosamente.
+
+                Dirección: ${direccion}
+                Fecha: ${fecha_inicio} hasta ${fecha_fin}
+
+                Monto: ${monto_total}
+                `
             ),
             enviarCorreo(
                 correo_propietario,
                 'Nueva Reservación',
-                `El inquilino con ID: ${inquilino_id} ha creado una reservación para su propiedad ID: ${propiedad_id}.`
+                `Hola ${nombre_propietario},
+
+                Se creó una reservación en su propiedad:
+
+                Dirección: ${direccion}
+                Fecha: ${fecha_inicio} hasta ${fecha_fin}
+
+                Monto: ${monto_total}
+                `
             )
         ]);
 
@@ -98,84 +163,158 @@ router.post('/', async (req, res) => {
     }
 });
 
-
 // Actualizar una reservación por ID
-router.put('/', (req, res) => {
+router.put('/', async (req, res) => {
     const { id } = req.query;
     const { propiedad_id, propietario_id, inquilino_id, fecha_inicio, fecha_fin, fecha_reserva, monto_total } = req.body;
     const sql = 'UPDATE reservaciones SET propiedad_id = ?, fecha_inicio = ?, fecha_fin = ?, fecha_reserva = ?, monto_total = ? WHERE id = ?';
 
-    conexion.query(sql, [propiedad_id, propietario_id, inquilino_id, fecha_inicio, fecha_fin, fecha_reserva, monto_total, id], (err, result) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-
-        // Obtener correos de propietario e inquilino
-        obtenerCorreos(inquilino_id, propietario_id)
-            .then(({ correo_inquilino, correo_propietario }) => {
-                // Enviar correos
-                return Promise.all([
-                    enviarCorreo(
-                        correo_inquilino,
-                        'Reservación Actualizada',
-                        `Su reservación para la propiedad ID: ${propiedad_id} ha sido actualizada exitosamente.`
-                    ),
-                    enviarCorreo(
-                        correo_propietario,
-                        'Reservación Actualizada',
-                        `El inquilino con ID: ${inquilino_id} ha actualizado su reservación para su propiedad ID: ${propiedad_id}.`
-                    )
-                ]);
-            })
-            .then(() => {
-                res.json({ message: 'Reservación actualizada con éxito y correos enviados.' });
-            })
-            .catch(error => {
-                console.error('Error al enviar los correos:', error);
-                res.status(500).json({ error: 'Reservación actualizada, pero ocurrió un error al enviar los correos.' });
+    try {
+        await new Promise((resolve, reject) => {
+            conexion.query(sql, [propiedad_id, propietario_id, inquilino_id, fecha_inicio, fecha_fin, fecha_reserva, monto_total, id], (err, result) => {
+                if (err) {
+                    return reject(err);
+                }
+                resolve(result);
             });
-    });
+        });
+
+        const { correo_inquilino, nombre_inquilino, correo_propietario, nombre_propietario, direccion } = await obtenerCorreos(inquilino_id, propietario_id);
+
+        await Promise.all([
+            enviarCorreo(
+                correo_inquilino,
+                'Reservación Actualizada',
+                `Hola ${nombre_inquilino},
+
+                Su reservación ha sido actualizada exitosamente.
+
+                Dirección: ${direccion}
+                Fecha: ${fecha_inicio} hasta ${fecha_fin}
+
+                Monto: ${monto_total}
+                `
+            ),
+            enviarCorreo(
+                correo_propietario,
+                'Reservación Actualizada',
+                `Hola ${nombre_propietario},
+
+                El inquilino ${nombre_inquilino} ha actualizado su reservación para su propiedad:
+
+                Dirección: ${direccion}
+                Fecha: ${fecha_inicio} hasta ${fecha_fin}
+
+                Monto: ${monto_total}
+                `
+            )
+        ]);
+
+        res.json({ message: 'Reservación actualizada con éxito y correos enviados.' });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Ocurrió un error al actualizar la reservación o al enviar los correos.' });
+    }
 });
 
 // Eliminar una reservación por ID
-router.delete('/', (req, res) => {
+router.delete('/', async (req, res) => {
     const { id } = req.query;
-    const sql = 'DELETE FROM reservaciones WHERE id = ?';
 
-    conexion.query(sql, [id], (err, result) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
+    try {
+        const detalles = await new Promise((resolve, reject) => {
+            const sqlDetalles = `
+                SELECT r.*, u.nombre AS nombre_inquilino, u.correo AS correo_inquilino, 
+                p.nombre AS nombre_propietario, p.correo AS correo_propietario, prop.direccion
+                FROM reservaciones r
+                JOIN usuarios u ON r.inquilino_id = u.id
+                JOIN usuarios p ON r.propietario_id = p.id
+                JOIN propiedades prop ON r.propiedad_id = prop.id
+                WHERE r.id = ?
+            `;
+            conexion.query(sqlDetalles, [id], (err, results) => {
+                if (err) {
+                    return reject(err);
+                }
+                if (results.length === 0) {
+                    return reject(new Error('Reservación no encontrada'));
+                }
+                resolve(results[0]);
+            });
+        });
 
-        // Obtener el correo del usuario antes de eliminar la reservación
-        const selectEmailSql = 'SELECT email FROM usuarios WHERE id = (SELECT usuario_id FROM reservaciones WHERE id = ?)';
-        conexion.query(selectEmailSql, [id], (err, results) => {
+        const { correo_inquilino, correo_propietario, nombre_inquilino, nombre_propietario, direccion } = detalles;
+
+        await Promise.all([
+            enviarCorreo(
+                correo_inquilino,
+                'Reservación Eliminada',
+                `Hola ${nombre_inquilino},
+
+                Tu reservación en la propiedad en ${direccion} ha sido eliminada.
+                `
+            ),
+            enviarCorreo(
+                correo_propietario,
+                'Reservación Eliminada',
+                `Hola ${nombre_propietario},
+
+                La reservación en su propiedad en ${direccion} ha sido eliminada.
+                `
+            )
+        ]);
+
+        const sqlEliminar = 'DELETE FROM reservaciones WHERE id = ?';
+        await new Promise((resolve, reject) => {
+            conexion.query(sqlEliminar, [id], (err, result) => {
+                if (err) {
+                    return reject(err);
+                }
+                resolve(result);
+            });
+        });
+
+        res.json({ message: 'Reservación eliminada y correos enviados con éxito.' });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Ocurrió un error al eliminar la reservación o al enviar los correos.' });
+    }
+});
+
+// Función para obtener detalles adicionales de la reservación
+async function obtenerDetallesReservacion(inquilino_id, propietario_id, propiedad_id) {
+    return new Promise((resolve, reject) => {
+        const sql = `
+            SELECT
+                i.nombre AS nombre_inquilino,
+                p.nombre AS nombre_propietario,
+                prop.direccion AS direccion,
+                i.correo AS correo_inquilino,
+                p.correo AS correo_propietario
+            FROM
+                usuarios i
+            JOIN
+                reservaciones r ON r.inquilino_id = i.id
+            JOIN
+                usuarios p ON r.propietario_id = p.id
+            JOIN
+                propiedades prop ON r.propiedad_id = prop.id
+            WHERE
+                r.inquilino_id = ? AND r.propietario_id = ? AND r.propiedad_id = ?
+        `;
+
+        conexion.query(sql, [inquilino_id, propietario_id, propiedad_id], (err, results) => {
             if (err) {
-                return res.status(500).json({ error: err.message });
+                return reject(err);
             }
+
             if (results.length === 0) {
-                return res.status(404).json({ message: 'Reservación no encontrada' });
+                return reject(new Error('Detalles de la reservación no encontrados.'));
             }
 
-            const userEmail = results[0].email;
-
-            // Enviar correo al usuario
-            enviarCorreo(userEmail, 'Reservación Eliminada', 'Tu reservación ha sido eliminada.')
-                .then(() => {
-                    // Eliminar la reservación
-                    conexion.query(sql, [id], (err, result) => {
-                        if (err) {
-                            return res.status(500).json({ error: err.message });
-                        }
-                        res.json({ message: 'Reservación eliminada y correo enviado con éxito' });
-                    });
-                })
-                .catch(error => {
-                    console.error('Error al enviar el correo:', error);
-                    res.status(500).json({ error: 'Ocurrió un error al enviar el correo.' });
-                });
+            resolve(results[0]);
         });
     });
-});
+}
 
 module.exports = router;
